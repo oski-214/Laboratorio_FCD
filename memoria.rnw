@@ -56,34 +56,133 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \section{Introducción}
-El objetivo de esta memoria es documentar el diseño e implementación de un algoritmo Apriori para la minería de reglas de asociación, utilizando el lenguaje de programación R.
+El objetivo de esta memoria es documentar el diseño e implementación de diversos algoritmos y técnicas de la ciencia de datos, utilizando el lenguaje de programación R.
 
-Sweave nos permite generar este informe de manera dinámica, mezclando el texto explicativo con el código R que implementa el algoritmo.
+Sweave nos permite generar este informe de manera dinámica, mezclando el texto explicativo con el código R que implementa los algoritmos.
 
-\section{Fases del Algoritmo Apriori}
+\section{Resolución de Ejercicios}
+A continuación, se detallan los ejercicios resueltos.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ejercicio 1.3: Detección de Datos Anómalos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+En este ejercicio se aplican tres métodos distintos para la detección de datos anómalos sobre un conjunto de datos de muestra.
+
+\subsubsection*{Carga de Datos de Muestra}
+A continuación, se definen los datos de muestra para este ejercicio.
+
+<<DatosAnomalos_Setup, echo=TRUE, results=verbatim>>=
+(muestra<-t(matrix(c(3,2,3.5,12,4.7,4.1,5.2,4.9,7.1,6.1,6.2,5.2,14,5.3),2,7,dimnames=list(c("r", "d")))))
+(muestra<-data.frame(muestra))
+@
+
+\subsubsection{Método 1: Caja y Bigotes}
+
+\subsubsection*{Explicación del Método}
+Para la detección de datos anómalos por este método se debe llevar a cabo siguiendo 4 pasos. $1^o$ se determina el valor del grado del outlier ($d$).
+$2^o$ Se ordenan los datos para el parámetro que se quiere detectar los datos anómalos, en este caso la resistencia o r. $3^o$ Se calculan los valores del
+$cuartil_{1}$ y del $cuartil_{3}$. $4^o$ se observa que valores quedan fuera del intervalo, el cual sería: $[cuartil_{1} - d * (cuartil_{3} - cuartil_{1}), cuartil_{3} + d * (cuartil_{3} - cuartil_{1})]$
+
+
+\subsubsection*{Código y Ejecución (Sweave)}
+<<Anomalos_Boxplot, echo=TRUE, results=verbatim>>=
+# 1. Metodo de Caja y Bigotes (para la columna 'r')
+(boxplot(muestra$r, range=1.5, plot=FALSE))
+
+# Calculo manual
+(cuar1r<-quantile(muestra$r, 0.25))
+(cuar3r<-quantile(muestra$r, 0.75))
+(int<-c(cuar1r-1.5*(cuar3r-cuar1r), cuar3r+1.5*(cuar3r-cuar1r)))
+
+# Bucle para detectar outliers
+for (i in 1:length(muestra$r))
+{if (muestra$r[i]<int[1] || muestra$r[i]>int[2])
+{print("el suceso"); print(i); print(muestra$r[i]); print("es un outlier")}}
+@
+
+\subsubsection{Método 2: Desviación Típica}
+
+\subsubsection*{Explicación del Método}
+Para la detección de datos anómalos por este método se debe llevar a cabo los siguiente 4 pasos. $1^o$ se determina el valor del grado de outlier($d$).
+$2^o$ se debe hallar el valor de la media para el parámetro que se nos halla pedido, en este caso densidad o d (d_{mean}). $3^o$ Se debe calcular el valor de la 
+desviación típica para dicho parámetro ($d_{desv}$). $4^o$ Se debe ver que valores quedan fuera del intervalo, el cual sería: $[d_{mean} - d * d_{desv}, d_{mean} + d * d_{desv}]$
+
+
+\subsubsection*{Código y Ejecución (Sweave)}
+<<Anomalos_SD, echo=TRUE, results=verbatim>>=
+# 2. Metodo de Desviacion Tipica (para la columna 'd')
+
+# Calculo de la desviacion tipica poblacional
+sdd<-sqrt(var(muestra$d)*((length(muestra$d)-1)/length(muestra$d)))
+
+# Calculo del intervalo
+(intdes<-c(mean(muestra$d)-2*sdd, mean(muestra$d)+2*sdd))
+
+# Bucle para detectar outliers
+for (i in 1:length(muestra$d))
+{if (muestra$d[i]<intdes[1] ||  muestra$d[i]>intdes[2])
+{print("el suceso"); print(i); print(muestra$d[i]); print("es un outlier")}}
+@
+
+\subsubsection{Método 3: Regresión (Error de Residuos)}
+
+\subsubsection*{Explicación del Método}
+\subsubsection*{Explicación del Método}
+Para la detección de datos anómalos por este método se deben llevar a cabo los 7 siguientes pasos. $1^o$ Determinar el valor del grado de outlier ($d$). 
+$2^o$ Se deben hallar los valores de $a$ y $b$ para poder tener una forma de predecir los valores de la densidad que vamos a llamar ($y_{hat}$). 
+Para esto se tiene que hallar el valor de la covarianza, ya que el valor de $b$ sería la división del valor de la covarianza / la varianza de la resistencia ($x$); por último para hallar $a$: $a = y_{mean} - b \times x_{mean}$. De esta 
+forma ya se puede obtener predicciones de los valores de la densidad: $y_{hat} = a + b \times x_i$. $3^o$ Se obtienen los valores predichos de la densidad para cada valor de la resistencia ($x_i$). 
+$4^o$ Se calcula el error estandar de los residuos ($Sr$). $5^o$ Se obtiene el valor identicador de outliers que sería $d \times Sr$. $6^o$ Se obtiene el valor absoluto de la diferencia entre 
+los valores de $y_i$ y los $y_{hat}$. $7^o$ Aquellos valores cuya diferencia supere el valor de $d \times Sr$ serán considerados outliers.
+
+\subsubsection*{Código y Ejecución (Sweave)}
+<<Anomalos_Regression, echo=TRUE, results=verbatim>>=
+# 3. Metodo de Regresion (para 'd' en funcion de 'r')
+
+# Calculo del modelo de regresion lineal
+(dfr<-lm(muestra$d~muestra$r))
+(summary(dfr))
+
+# Obtencion de residuos
+(res<-summary(dfr)$residuals)
+
+# Calculo del error estandar de los residuos
+sr<-sqrt(sum(res^2)/length(res))
+sr
+
+# Bucle para detectar outliers en los residuos
+for (i in 1:length(res))
+{if (res[i]>2*sr)
+{print("el suceso"); print(res[i]); print("es un outlier")}}
+@
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ejercicio 2.2: Fases del Algoritmo Apriori}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 El algoritmo se ha dividido en 7 fases lógicas, que se detallan a continuación.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Fase 1: Carga de Datos y Sucesos Elementales Candidatos}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsubsection{Fase 1: Carga de Datos y Sucesos Elementales Candidatos}
 
 \subsubsection*{Explicación de la Fase}
-En esta primera fase el objetivo es ver que sucesos elementales de la muestra superan o igualan el umbral de soporte. 
+[En esta primera fase el objetivo es ver que sucesos elementales de la muestra superan o igualan el umbral de soporte. 
 Para ello se tiene que calcular el $n^o$ de veces que aparece dicho suceso elemental en la muestra, dividido por el núemro de 
 elemento de la muestra. Los sucesos elementales que superen o igualen el umbral, son los que en la siguiente 
 fase se utilizarán para crear los sucesos candidatos de las diferentes dimensiones. Antes de llevar a cabo estos pasos, se debe
-cargar la muestra.
+cargar la muestra.]
 
 \subsubsection*{Prompt de IA Utilizado}
 \begin{quote}
-From the image i have just sent you i need to use a support threshold of 80% in order 
+[From the image i have just sent you i need to use a support threshold of 80% in order 
 to decide which of the elements ("Faros de Xenon", "Alarma" and so on) go through and 
 are going to be consider in the next step to start creating the candidates subsets. 
 So in the image i have just sent you it is clear that i an identify the number of 
 times each element appears, so how can i go through them all dividing the number 
 of times they appear and dividing it by the amount of "sucesos"
 that there are (there are 8) so that i get the percentages of the times they appear
-for a subset of 8 elements and can discriminate which elements surpass the 0.5 threshold
+for a subset of 8 elements and can discriminate which elements surpass the 0.5 threshold]
 \end{quote}
 
 \subsubsection*{Código y Ejecución (Sweave)}
@@ -114,19 +213,19 @@ elementos_S_validos
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Fase 2: Generación de Sucesos Candidatos (L2, L3, L4)}
+\subsubsection{Fase 2: Generación de Sucesos Candidatos (L2, L3, L4)}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection*{Explicación de la Fase}
-En esta segunda fase, se van a construir los sucesos candidatos para cada una de las dimensiones necesarias en función del número
+[En esta segunda fase, se van a construir los sucesos candidatos para cada una de las dimensiones necesarias en función del número
 de sucesos candidatos elementales que superan el umbral de soporte en la primera fase. En este caso va a ser necesario
 crear sucesos candidatos hasta la cuarta dimensión. Para crear estos sucesos candidatos de dimensión K, se deben utilizar sucesos
 candidatos de la dimensión K-1 donde los últimos elementos de ambos sean diferentes y el resto de elemetos de ambos sean iguales
-de forma que no haya conflicto a la hora de combinar ambos sucesos.
+de forma que no haya conflicto a la hora de combinar ambos sucesos].
 
 \subsubsection*{Prompt de IA Utilizado}
 \begin{quote}
-Okey great lets continue on to the next step. In this next step i need you get
+[Okey great lets continue on to the next step. In this next step i need you get
 the candidate subsets that are going to form up to 4 dimmensions 
 (because 4 elements passed the threshold). 
 
@@ -148,7 +247,7 @@ are from the k=2 dimmension then we can combine them because it follows the
 rules i mentioned obtaining anew subset of {X,C,N} for the dimmension k=3.
 
 And for yout information the elements that passed the threshold were Faros de Xenon, 
-Control de Velocidad, Navegador, Bluetooth.
+Control de Velocidad, Navegador, Bluetooth.]
 \end{quote}
 
 \subsubsection*{Código y Ejecución (Sweave)}
@@ -205,7 +304,7 @@ print(L4)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Fase 3: Hash-Tree de sucesos candidatos para cada dimensión}
+\subsubsection{Fase 3: Hash-Tree de sucesos candidatos para cada dimensión}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection*{Explicación de la Fase}
@@ -215,15 +314,12 @@ cada dimensión (L2, L3, L4)]
 
 \subsubsection*{Prompt de IA Utilizado}
 \begin{quote}
-Okey great, thanks, lets move on to the next step, now we need to start working 
+[Okey great, thanks, lets move on to the next step, now we need to start working 
 with tree structures, first you are going to focus on the candidates subsets, 
-which first need to be transformed the words into numbers, using this transformation:
-\begin{verbatim}
-item_map <- c( "Faros de Xenon" = 1, "Control de Velocidad" = 2, "Navegador" = 3,
-"Bluetooth" = 4, "Techo Solar" = 5, "Alarma" = 6 )
-\end{verbatim}
-Once you transform the candidates to the numbers, this numbers must be sorted, 
-for example if you have a subset that ends up being 243, it has to trasform to 234.
+which first need to be transformed the words into numbers, using this transformation: 
+\{ Faros de Xenon =1, Control de Velocidad = 2, Navegador =3, Bluetooth =4, Techo Solar =5,
+Alarma =6). Once you transform the candidates to the numbers, this numbers must be sorted, 
+for example if you have a subset that ends up being 243, it has to trasform to 234.]
 \end{quote}
 
 \subsubsection*{Código y Ejecución (Sweave)}
@@ -255,19 +351,19 @@ print(L2_numerico)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Fase 4: Construcción de Hash Trees para cada suceso de la muestra para cada dimensión}
+\subsubsection{Fase 4: Construcción de Hash Trees para cada suceso de la muestra para cada dimensión}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection*{Explicación de la Fase}
-En esta fase se van a construir los hash trees de cada uno de los sucesos de la muestra para cada una de las dimensiones previas
+[En esta fase se van a construir los hash trees de cada uno de los sucesos de la muestra para cada una de las dimensiones previas
 (L2, L3, L4). Para llevar a cabo esta tarea se deben llevar a cabo los siguientes pasos. $1^o$ Se deben transformar los sucesos de la
 muestra a los valores númericos de la misma forma que se hizo en la fase previa. $2^o$ Una vez se tengan los valores númericos se deben
 crear todas las combinaciones de cada suceso de la muestra para cada una de las dimensiones (L2, L3, L4). $3^o$ Se deben crear
-los hash-trees para cada dimensión a partir de todas las combinaciones posibles creadas.
+los hash-trees para cada dimensión a partir de todas las combinaciones posibles creadas.]
 
 \subsubsection*{Prompt de IA Utilizado}
 \begin{quote}
-okey, so the next step is to transform all the elementos of the sample to the numbers
+[okey, so the next step is to transform all the elementos of the sample to the numbers
 following this mapping function, so that as we have done for the candidate
  subsets we can transform the sample into trees of k=2, 3 and 4 dimmensions .
 
@@ -282,13 +378,14 @@ item_map <- c( "Faros de Xenon" = 1, "Control de Velocidad" = 2, "Navegador" = 3
 \end{verbatim}
 And this is sample that needs to be transformed first into numbers and then into subsets
 of size = 2, 3 and 4 so that the trees of this samples are created:
+\begin{verbatim}
 muestra <- Matrix(c(1,1,1,1,0,0, 1,1,0,1,1,0, 1,1,1,0,0,0, 1,0,1,1,1,0, 1,1,0,1,0,0, 
 0,0,1,0,0,0, 1,1,0,1,0,0, 0,0,0,0,1,1), nrow = 8, ncol = 6, byrow=TRUE, 
 dimnames = list(c("suceso1", "suceso2", "suceso3", "suceso4", "suceso5", "suceso6", 
 "suceso7", "suceso8"), c("Faros de Xenon", "Control de Velocidad", "Navegador", 
 "Bluetooth", "Techo Solar", "Alarma")),sparse=TRUE).
-
-The trees need to be done for every level for every subset of the sample.
+\end{verbatim}
+The trees need to be done for every level for every subset of the sample.]
 \end{quote}
 
 \subsubsection*{Código y Ejecución (Sweave)}
@@ -327,7 +424,6 @@ insert_candidate <- function(root, candidate) {
     invisible(NULL)
 }
  
-
  
 build_tree <- function(candidates) {
     root <- make_node(item = NULL, is_end = FALSE)
@@ -401,17 +497,17 @@ print_tree(all_trees$suceso1$tree_C2)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Fase 5: Conteo sucesos candidatos para analizar la asociación de los que superen el umbral de soporte}
+\subsubsection{Fase 5: Conteo sucesos candidatos para analizar la asociación de los que superen el umbral de soporte}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection*{Explicación de la Fase}
-En esta fase se cuenta el número de veces que aparecen los sucesos candidatos en los árboles de los sucesos de la muestra. Este paso es importante ya 
+[En esta fase se cuenta el número de veces que aparecen los sucesos candidatos en los árboles de los sucesos de la muestra. Este paso es importante ya 
 que solo aquellos sucesos que superen el umbral de soporte serán considerados en la fase de análisis de asociación. De forma que se contabiliza si el 
-$n^o$ de veces que aparecen los sucesos candidatos/$n^o$ de sucesos de la muestra es superior o igual al umbral de soporte
+$n^o$ de veces que aparecen los sucesos candidatos/$n^o$ de sucesos de la muestra es superior o igual al umbral de soporte]
 
 \subsubsection*{Prompt de IA Utilizado}
 \begin{quote}
-okey great, we can now move on to the next phase which consists on counting 
+[okey great, we can now move on to the next phase which consists on counting 
 how many times do the leafs of the candidates tree in each level appear 
 in each of the sample trees as this values need to be counted in order 
 to see which of the candidates subsets move on to the next phase.
@@ -419,7 +515,7 @@ to see which of the candidates subsets move on to the next phase.
 okey, great no that i have the supports for every tree subset, 
 we need to filter by threshold that i have already defined previously 
 support_threshold <- 0.5. The ones that pass the cut will pass on to 
-the next phase.
+the next phase.]
 \end{quote}
 
 \subsubsection*{Código y Ejecución (Sweave)}
@@ -429,53 +525,53 @@ the next phase.
 
 
 get_leaf_paths <- function(node, current_path = integer()) {
-   paths <- list()
-   if (!is.null(node$item)) {
-     current_path <- c(current_path, node$item)
-   }
-   if (node$is_end) {
-     paths <- append(paths, list(current_path))
-   }
-   if (length(node$children) > 0) {
-     for (child in node$children) {
-       paths <- append(paths, get_leaf_paths(child, current_path))
-     }
-   }
-   paths
+    paths <- list()
+    if (!is.null(node$item)) {
+      current_path <- c(current_path, node$item)
+    }
+    if (node$is_end) {
+      paths <- append(paths, list(current_path))
+    }
+    if (length(node$children) > 0) {
+      for (child in node$children) {
+        paths <- append(paths, get_leaf_paths(child, current_path))
+      }
+    }
+    paths
 }
 
 path_in_tree <- function(tree, path) {
-   current <- tree
-   for (item in path) {
-     key <- as.character(item)
-     if (!(key %in% names(current$children))) {
-       return(FALSE)
-     }
-     current <- current$children[[key]]
-   }
+    current <- tree
+    for (item in path) {
+      key <- as.character(item)
+      if (!(key %in% names(current$children))) {
+        return(FALSE)
+      }
+      current <- current$children[[key]]
+    }
    return(TRUE)
 }
 
 count_supports <- function(candidate_tree, sample_trees_by_level) {
-   candidate_paths <- get_leaf_paths(candidate_tree)
-   supports <- numeric(length(candidate_paths))
-   
-   for (i in seq_along(candidate_paths)) {
-     path <- candidate_paths[[i]]
-     supports[i] <- sum(sapply(sample_trees_by_level, function(trees) {
-       tree_level <- NULL
-       k <- length(path)
-       if (k == 2) tree_level <- trees$tree_C2
-       else if (k == 3) tree_level <- trees$tree_C3
-       else if (k == 4) tree_level <- trees$tree_C4
-       if (is.null(tree_level)) return(FALSE)
-       path_in_tree(tree_level, path)
-     }))
-   }
-   data.frame(
-     itemset = sapply(candidate_paths, function(p) paste(p, collapse = ",")),
-     support = supports
-   )
+    candidate_paths <- get_leaf_paths(candidate_tree)
+    supports <- numeric(length(candidate_paths))
+    
+    for (i in seq_along(candidate_paths)) {
+      path <- candidate_paths[[i]]
+      supports[i] <- sum(sapply(sample_trees_by_level, function(trees) {
+        tree_level <- NULL
+        k <- length(path)
+        if (k == 2) tree_level <- trees$tree_C2
+        else if (k == 3) tree_level <- trees$tree_C3
+        else if (k == 4) tree_level <- trees$tree_C4
+        if (is.null(tree_level)) return(FALSE)
+        path_in_tree(tree_level, path)
+      }))
+    }
+    data.frame(
+      itemset = sapply(candidate_paths, function(p) paste(p, collapse = ",")),
+      support = supports
+    )
 }
 
 soporte_arbol_L2 <- count_supports(arbol_L2_candidatos, all_trees)
@@ -490,8 +586,8 @@ print("Soporte L4 (Antes de filtrar):")
 print(soporte_arbol_L4)
 
 filter_by_threshold <- function(support_df, threshold, total_tx) {
-   support_df$support_ratio <- support_df$support / total_tx
-   subset(support_df, support_ratio >= threshold)
+    support_df$support_ratio <- support_df$support / total_tx
+    subset(support_df, support_ratio >= threshold)
 }
 
 L2_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L2, support_threshold, numero_sucesos)
@@ -508,24 +604,24 @@ print(L4_candidatos_post_arbol)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Fase 6: Generación de Reglas de Asociación}
+\subsubsection{Fase 6: Generación de Reglas de Asociación}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection*{Explicación de la Fase}
-En esta fase a partir de los sucesos candidatos que superaron el umbral de soporte se van a crear las diversas reglas de asociación
+[En esta fase a partir de los sucesos candidatos que superaron el umbral de soporte se van a crear las diversas reglas de asociación
 para cada uno de ellos. Para saber cuantas reglas de asociación se deben crear por cada suceso de cada dimensión, se debe considerar el cálculo de
 $2^K-2$. De forma que si por ejemplo $K=3$, habrá 6 reglás de asociación que se deben crear y analizar. Para la creación de las reglas de asociación
-se debe entender que se forman con la siguiente estructura $A \to B-A$, donde $B$ podría ser $\{Co, Li\}$ y $A$ sería $\{Co\}$ o $\{Li\}$.
+se debe entender que se forman con la siguiente estructura $A \to B-A$, donde $B$ podría ser $\{Co, Li\}$ y $A$ sería $\{Co\}$ o $\{Li\}$.]
 
 \subsubsection*{Prompt de IA Utilizado}
 \begin{quote}
-Okay, we can move onto the next phase, no we have to create associations 
+[Okay, we can move onto the next phase, no we have to create associations 
 from every level (L2, L3, L4) . The amount of associations that can be 
 created for each subset of each level follows the following formula: $2^k-2$. 
 So for example for every subset of $k=2$, there are two possible associations. 
 
 Before you start creating every association for each subset you have to reverse 
-the numeric values for the words that we previously changed.
+the numeric values for the words that we previously changed.]
 \end{quote}
 
 \subsubsection*{Código y Ejecución (Sweave)}
@@ -534,9 +630,9 @@ the numeric values for the words that we previously changed.
 item_map_rev <- setNames(names(item_map), item_map)
 
 generate_associations <- function(itemset) {
-   k <- length(itemset)
-   associations <- list()
-   if (k < 2) return(associations)
+    k <- length(itemset)
+    associations <- list()
+    if (k < 2) return(associations)
  
    all_subsets <- unlist(lapply(1:(k - 1), function(i) combn(itemset, i, simplify = FALSE)), recursive = FALSE)
  
@@ -551,24 +647,24 @@ generate_associations <- function(itemset) {
 split_itemset <- function(s) as.integer(unlist(strsplit(s, ",")))
 
 create_associations_from_L <- function(L_df) {
-   if (nrow(L_df) == 0) return(data.frame())
-   
-   all_associations <- list()
-   for (i in seq_len(nrow(L_df))) {
-     itemset <- split_itemset(L_df$itemset[i])
-     associations <- generate_associations(itemset)
-     all_associations <- append(all_associations, lapply(associations, function(r) {
-       data.frame(
-         lhs = paste(item_map_rev[as.character(sort(r$lhs))], collapse = ", "),
-         rhs = paste(item_map_rev[as.character(sort(r$rhs))], collapse = ", "),
-         k = length(itemset),
-         support = L_df$support[i],
-         support_ratio = L_df$support_ratio[i],
-         stringsAsFactors = FALSE
-       )
-     }))
-   }
-   
+    if (nrow(L_df) == 0) return(data.frame())
+    
+    all_associations <- list()
+    for (i in seq_len(nrow(L_df))) {
+      itemset <- split_itemset(L_df$itemset[i])
+      associations <- generate_associations(itemset)
+      all_associations <- append(all_associations, lapply(associations, function(r) {
+        data.frame(
+          lhs = paste(item_map_rev[as.character(sort(r$lhs))], collapse = ", "),
+          rhs = paste(item_map_rev[as.character(sort(r$rhs))], collapse = ", "),
+          k = length(itemset),
+          support = L_df$support[i],
+          support_ratio = L_df$support_ratio[i],
+          stringsAsFactors = FALSE
+        )
+      }))
+    }
+    
    do.call(rbind, all_associations)
 }
 
@@ -584,15 +680,15 @@ print(associaciones_L3)
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Fase 7: Cálculo de Confianza y Filtrado Final}
+\subsubsection{Fase 7: Cálculo de Confianza y Filtrado Final}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection*{Explicación de la Fase}
-En esta fase final se va a realizar el cálculo de confianza de cada una de las reglas de asociación para así poder sacar conclusiones de la muestra con
+[En esta fase final se va a realizar el cálculo de confianza de cada una de las reglas de asociación para así poder sacar conclusiones de la muestra con
 cierto grado de confianza. Para llevar a cabo este cálculo se deberá dividir el $n^o$ de veces que aparece B en la muestra/$n^o$ de veces que aparece A en la muestra.
 Si por ejemplo se tiene que $B=\{Co,Li\}$ y se tiene la siguiente regla de asociación $Co \to Li$ en este caso $A=Co$. Y esos son los conjuntos que se deben
 contabilizar de la muestra. Aquellas reglas de asociación que superen dicho umbral de confianza, se podrá afirmar con el umbral de confianza que si sucede
-una, la otra también sucede con ese grado de confianza.
+una, la otra también sucede con ese grado de confianza.]
 
 \subsubsection*{Prompt de IA Utilizado}
 \begin{quote}
@@ -610,52 +706,57 @@ And also, do not incorporate prunning to the code.]
 confidence_threshold <- 0.8
 
 convert_numeric_str_to_text_str <- function(num_str, map_rev) {
-   nums_numeric <- split_itemset(num_str) 
-   nums_char <- as.character(nums_numeric)
-   names <- unname(map_rev[nums_char])
-   paste(names, collapse = ", ") 
+    nums_numeric <- split_itemset(num_str) 
+    nums_char <- as.character(nums_numeric)
+    names <- unname(map_rev[nums_char])
+    paste(names, collapse = ", ") 
 }
 
 soporte_L1_map_df <- data.frame(
-   lhs_str = names(frequency),
-   lhs_support = as.integer(frequency),
-   stringsAsFactors = FALSE
+    lhs_str = names(frequency),
+    lhs_support = as.integer(frequency),
+    stringsAsFactors = FALSE
 )
 
 soporte_L2_map_df <- data.frame(
-   lhs_str = sapply(soporte_arbol_L2$itemset, convert_numeric_str_to_text_str, map_rev = item_map_rev),
-   lhs_support = soporte_arbol_L2$support,
-   stringsAsFactors = FALSE
+    lhs_str = sapply(soporte_arbol_L2$itemset, convert_numeric_str_to_text_str, map_rev = item_map_rev),
+    lhs_support = soporte_arbol_L2$support,
+    stringsAsFactors = FALSE
 )
 
 soporte_L3_map_df <- data.frame(
-   lhs_str = sapply(soporte_arbol_L3$itemset, convert_numeric_str_to_text_str, map_rev = item_map_rev),
-   lhs_support = soporte_arbol_L3$support,
-   stringsAsFactors = FALSE
+    lhs_str = sapply(soporte_arbol_L3$itemset, convert_numeric_str_to_text_str, map_rev = item_map_rev),
+    lhs_support = soporte_arbol_L3$support,
+    stringsAsFactors = FALSE
 )
 
 master_support_lookup <- rbind(soporte_L1_map_df, soporte_L2_map_df, soporte_L3_map_df)
 master_support_lookup <- na.omit(master_support_lookup)
 
 calculate_and_filter_confidence <- function(associations_df, support_lookup, threshold) {
-   if (nrow(associations_df) == 0) {
-     return(data.frame(
-       lhs = character(),
-       rhs = character(),
-       k = integer(),
-       support_ratio = numeric(),
-       confidence = numeric(),
-       stringsAsFactors = FALSE
-     ))
-   }
-   
-   merged_df <- merge(associations_df, support_lookup, by.x = "lhs", by.y = "lhs_str", all.x = TRUE)
-   merged_df$lhs_support[is.na(merged_df$lhs_support)] <- 0
-   merged_df$confidence <- merged_df$support / merged_df$lhs_support
-   merged_df$confidence[is.nan(merged_df$confidence)] <- 0
-   
-   strong_rules <- merged_df[, c("lhs", "rhs", "k", "support_ratio", "confidence")]
-   strong_rules[order(-strong_rules$confidence), ]
+    if (nrow(associations_df) == 0) {
+      return(data.frame(
+        lhs = character(),
+        rhs = character(),
+        k = integer(),
+        support_ratio = numeric(),
+        confidence = numeric(),
+        stringsAsFactors = FALSE
+      ))
+    }
+    
+    merged_df <- merge(associations_df, support_lookup, by.x = "lhs", by.y = "lhs_str", all.x = TRUE)
+    
+    merged_df$lhs_support[is.na(merged_df$lhs_support)] <- 0
+    
+    merged_df$confidence <- merged_df$support / merged_df$support
+    
+    merged_df$confidence[is.nan(merged_df$confidence)] <- 0
+    
+    strong_rules <- merged_df[, c("lhs", "rhs", "k", "support_ratio", "confidence")]
+    
+    # Modificado: No filtrar por threshold aquí, solo ordenar
+    strong_rules[order(-strong_rules$confidence), ]
 }
 
 reglas_fuertes_L2 <- calculate_and_filter_confidence(associaciones_L2, master_support_lookup, confidence_threshold)
