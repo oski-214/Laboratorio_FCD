@@ -217,9 +217,12 @@ cada dimensión (L2, L3, L4)]
 \begin{quote}
 Okey great, thanks, lets move on to the next step, now we need to start working 
 with tree structures, first you are going to focus on the candidates subsets, 
-which first need to be transformed the words into numbers, using this transformation: 
-{ Faros de Xenon =1, Control de Velocidad = 2, Navegador =3, Bluetooth =4, Techo Solar =5,
-Alarma =6). Once you transform the candidates to the numbers, this numbers must be sorted, 
+which first need to be transformed the words into numbers, using this transformation:
+\begin{verbatim}
+item_map <- c( "Faros de Xenon" = 1, "Control de Velocidad" = 2, "Navegador" = 3,
+"Bluetooth" = 4, "Techo Solar" = 5, "Alarma" = 6 )
+\end{verbatim}
+Once you transform the candidates to the numbers, this numbers must be sorted, 
 for example if you have a subset that ends up being 243, it has to trasform to 234.
 \end{quote}
 
