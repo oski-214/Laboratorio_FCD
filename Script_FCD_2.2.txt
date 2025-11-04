@@ -1,0 +1,495 @@
+# install.packages("Matrix")
+# install.packages("arules")
+library(Matrix)
+library(arules)
+
+muestra<-Matrix(c(1,1,1,1,0,0, 1,1,0,1,1,0, 1,1,1,0,0,0, 1,0,1,1,1,0, 1,1,0,1,0,0, 0,0,1,0,0,0, 1,1,0,1,0,0, 0,0,0,0,1,1), 8, 6, byrow=TRUE, dimnames = list(c("suceso1", "suceso2", "suceso3", "suceso4", "suceso5", "suceso6", "suceso7", "suceso8"), c("Faros de Xenon", "Control de Velocidad", "Navegador", "Bluetooth", "Techo Solar", "Alarma")),sparse=TRUE)
+
+muestrangCMatrix<-as(muestra, "nsparseMatrix")
+# muestrangCMatrix
+
+trapmuestrangCMatrix<-t(muestrangCMatrix)
+# trapmuestrangCMatrix
+
+transacciones<-as(trapmuestrangCMatrix, "transactions")
+# transacciones
+
+summary(transacciones)
+
+#1ª FASE ----------------------------------------------------------------------------------------
+
+frequency <- itemFrequency(transacciones, type ="absolute")
+# frequency
+
+support_threshold <- 0.5
+numero_sucesos <-length(transacciones)
+support_sucesos <-frequency/numero_sucesos
+# support_sucesos
+
+elementos_S_validos <- support_sucesos[support_sucesos >= support_threshold]
+# elementos_S_validos
+
+
+#2ªFASE -----------------------------------------------------------------------------------------
+L1 <- c("Faros de Xenon", "Control de Velocidad", "Navegador", "Bluetooth")
+# L1
+
+# Corregido: "funtion" a "function"
+L1_lista <- lapply(L1, function(x) c(x))
+
+
+generate_candidates <- function(L_prev) {
+   n <- length(L_prev)
+   if (n <= 1) return(list())     # nothing to join
+   k <- length(L_prev[[1]]) + 1   # target candidate size
+   
+   # make sure items inside each subset are sorted
+   L_prev <- lapply(L_prev, sort)
+   candidates <- list()
+   
+   for (i in seq_len(n - 1)) {         # iterate all but last
+     for (j in seq(i + 1, n)) {         # compare with following sets
+       a <- L_prev[[i]]
+       b <- L_prev[[j]]
+       
+       # join rule: all first (k-2) items identical
+       if (k - 2 == 0 || all(a[1:(k - 2)] == b[1:(k - 2)])) {
+         new_set <- sort(unique(c(a, b)))
+         if (length(new_set) == k) {
+           candidates <- append(candidates, list(new_set))
+         }
+       }
+     }
+   }
+   
+   # remove duplicates (if any)
+   if (length(candidates) > 0) {
+     candidates <- unique(lapply(candidates, function(x) paste(sort(x), collapse = ",")))
+     candidates <- lapply(candidates, function(x) strsplit(x, ",")[[1]])
+   }
+   return(candidates)
+}
+
+L2<- generate_candidates(L1_lista)
+# L2
+
+L3 <- generate_candidates(L2)
+# L3
+
+L4 <- generate_candidates(L3)
+# L4
+
+
+#3º FASE ----------------------------------------------------------------------------------------------------
+
+item_map <- c(
+   "Faros de Xenon" = 1,
+   "Control de Velocidad" = 2,
+   "Navegador" = 3,
+   "Bluetooth" = 4,
+   "Techo Solar" = 5,
+   "Alarma" = 6
+)
+
+
+encode_candidates <- function(candidates, mapping) {
+   lapply(candidates, function(subset) {
+     nums <- unname(mapping[subset])     # map words → numbers
+     sort(nums)                         # sort ascending (e.g., 243 → 234)
+   })
+}
+
+L2_numerico <- encode_candidates(L2, item_map)
+L3_numerico <- encode_candidates(L3, item_map)
+L4_numerico <- encode_candidates(L4, item_map)
+# L2_numerico
+
+# 4º FASE -----------------------------------------------------------------------------------------------
+
+all_candidates <- c(L2_numerico, L3_numerico, L4_numerico)
+
+L2_candidatos <- Filter(function(x) length(x) == 2, all_candidates)
+L3_candidatos <- Filter(function(x) length(x) == 3, all_candidates)
+L4_candidatos <- Filter(function(x) length(x) == 4, all_candidates)
+
+
+
+make_node <- function(item = NULL, is_end = FALSE) {
+   # Create a new environment, not a list
+   node <- new.env(parent = emptyenv()) 
+   node$item <- item
+   node$children <- list() # We can still use a list to hold the child envs
+   node$is_end <- is_end
+   node # Return the environment
+}
+
+
+
+
+insert_candidate <- function(root, candidate) {
+   current <- root
+   for (it in candidate) {
+     key <- as.character(it)
+     # create child if it doesn't exist
+     if (!(key %in% names(current$children))) {
+       current$children[[key]] <- make_node(item = it, is_end = FALSE)
+     }
+     # move to the child node
+     current <- current$children[[key]]
+   }
+   # mark end of candidate
+   current$is_end <- TRUE
+   invisible(NULL)
+}
+
+
+
+
+build_tree <- function(candidates) {
+   root <- make_node(item = NULL, is_end = FALSE)
+   for (cand in candidates) {
+     insert_candidate(root, cand)
+   }
+   root
+}
+
+
+
+
+print_tree <- function(node, depth = 0) {
+   indent <- paste(rep("  ", depth), collapse = "")
+   if (is.null(node$item)) {
+     cat("(root)\n")
+   } else {
+     cat(indent, "- ", node$item, if (node$is_end) " [end]\n" else "\n", sep = "")
+   }
+   # iterate children in numeric order of keys
+   if (length(node$children) > 0) {
+     keys <- as.integer(names(node$children))
+     keys <- sort(keys, na.last = TRUE)
+     for (k in as.character(keys)) {
+       print_tree(node$children[[k]], depth + 1)
+     }
+   }
+}
+
+
+arbol_L2_candidatos <- build_tree(L2_candidatos)
+arbol_L3_candidatos <- build_tree(L3_candidatos)
+arbol_L4_candidatos <- build_tree(L4_candidatos) 
+
+print_tree(arbol_L2_candidatos)
+# (root)
+#  - 1
+#    - 2 [end]
+#    - 3 [end]
+#    - 4 [end]
+#  - 2
+#    - 3 [end]
+#    - 4 [end]
+#  - 3
+#    - 4 [end]
+
+
+
+
+# for the sample trees
+
+transactions_num <- apply(muestra, 1, function(row) {
+   items <- names(row[row == 1])
+   nums <- unname(item_map[items])
+   sort(nums)
+})
+
+# transactions_num
+
+# Function to generate subsets of a given size k
+generate_subsets <- function(items, k) {
+   if (length(items) < k) return(list())
+   combn(items, k, simplify = FALSE)
+}
+
+
+transaction_subsets <- lapply(transactions_num, function(items) {
+   list(
+     C2 = generate_subsets(items, 2),
+     C3 = generate_subsets(items, 3),
+     C4 = generate_subsets(items, 4)
+   )
+})
+
+all_trees <- lapply(transaction_subsets, function(subs) {
+   list(
+     tree_C2 = if (length(subs$C2) > 0) build_tree(subs$C2) else NULL,
+     tree_C3 = if (length(subs$C3) > 0) build_tree(subs$C3) else NULL,
+     tree_C4 = if (length(subs$C4) > 0) build_tree(subs$C4) else NULL
+   )
+})
+
+
+print_tree(all_trees$suceso1$tree_C2)
+
+
+#5º FASE ------------------------------------------------------------------
+
+
+# Recursively collect all complete itemsets (leaf paths)
+get_leaf_paths <- function(node, current_path = integer()) {
+   paths <- list()
+   if (!is.null(node$item)) {
+     current_path <- c(current_path, node$item)
+   }
+   if (node$is_end) {
+     paths <- append(paths, list(current_path))
+   }
+   if (length(node$children) > 0) {
+     for (child in node$children) {
+       paths <- append(paths, get_leaf_paths(child, current_path))
+     }
+   }
+   paths
+}
+
+
+hojas_L2_candidato <- get_leaf_paths(arbol_L2_candidatos)
+# hojas_L2_candidato
+
+
+path_in_tree <- function(tree, path) {
+   current <- tree
+   for (item in path) {
+     key <- as.character(item)
+     if (!(key %in% names(current$children))) {
+       return(FALSE)
+     }
+     current <- current$children[[key]]
+   }
+   return(TRUE)
+}
+
+
+
+
+count_supports <- function(candidate_tree, sample_trees_by_level) {
+   candidate_paths <- get_leaf_paths(candidate_tree)
+   supports <- numeric(length(candidate_paths))
+   
+   for (i in seq_along(candidate_paths)) {
+     path <- candidate_paths[[i]]
+     supports[i] <- sum(sapply(sample_trees_by_level, function(trees) {
+       tree_level <- NULL
+       # choose the corresponding level (by length of path)
+       k <- length(path)
+       if (k == 2) tree_level <- trees$tree_C2
+       else if (k == 3) tree_level <- trees$tree_C3
+       else if (k == 4) tree_level <- trees$tree_C4
+       if (is.null(tree_level)) return(FALSE)
+       path_in_tree(tree_level, path)
+     }))
+   }
+   
+   data.frame(
+     itemset = sapply(candidate_paths, function(p) paste(p, collapse = ",")),
+     support = supports
+   )
+}
+
+
+
+soporte_arbol_L2 <- count_supports(arbol_L2_candidatos, all_trees)
+soporte_arbol_L3 <- count_supports(arbol_L3_candidatos, all_trees)
+soporte_arbol_L4 <- count_supports(arbol_L4_candidatos, all_trees)
+
+# soporte_arbol_L2
+#  itemset support
+# 1     1,2       5
+# 2     1,3       3
+# 3     1,4       5
+# 4     2,3       2
+# 5     2,4       4
+# 6     3,4       2
+# soporte_arbol_L3
+#  itemset support
+# 1   1,2,3       2
+# 2   1,2,4       4
+# 3   1,3,4       2
+# 4   2,3,4       1
+# soporte_arbol_L4
+#  itemset support
+# 1 1,2,3,4       1
+
+
+
+
+filter_by_threshold <- function(support_df, threshold, total_tx) {
+   support_df$support_ratio <- support_df$support / total_tx
+   subset(support_df, support_ratio >= threshold)
+}
+
+
+L2_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L2, support_threshold, numero_sucesos)
+L3_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L3, support_threshold, numero_sucesos)
+L4_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L4, support_threshold, numero_sucesos)
+
+# L2_candidatos_post_arbol
+#  itemset support support_ratio
+# 1     1,2       5         0.625
+# 3     1,4       5         0.625
+# 5     2,4       4         0.500
+# L3_candidatos_post_arbol
+#  itemset support support_ratio
+# 2   1,2,4       4           0.5
+# L4_candidatos_post_arbol
+# [1] itemset       support       support_ratio
+# <0 rows> (o 0- extensión row.names)
+
+
+
+
+#6ª FASE--------------------------------------------------------------------------------------------------
+
+item_map_rev <- setNames(names(item_map), item_map)
+
+
+generate_associations <- function(itemset) {
+ k <- length(itemset)
+   associations <- list()
+   if (k < 2) return(associations)
+ 
+   all_subsets <- unlist(lapply(1:(k - 1), function(i) combn(itemset, i, simplify = FALSE)), recursive = FALSE)
+ 
+   for (lhs in all_subsets) {
+     rhs <- setdiff(itemset, lhs)
+     associations <- append(associations, list(list(lhs = lhs, rhs = rhs)))
+   }
+   associations
+}
+
+# Helper: convert "1,2,3" -> c(1,2,3)
+split_itemset <- function(s) as.integer(unlist(strsplit(s, ",")))
+
+create_associations_from_L <- function(L_df) {
+ if (nrow(L_df) == 0) return(data.frame())
+   
+   all_associations <- list()
+   for (i in seq_len(nrow(L_df))) {
+     itemset <- split_itemset(L_df$itemset[i])
+     associations <- generate_associations(itemset)
+     all_associations <- append(all_associations, lapply(associations, function(r) {
+       data.frame(
+         lhs = paste(item_map_rev[as.character(sort(r$lhs))], collapse = ", "),
+         rhs = paste(item_map_rev[as.character(sort(r$rhs))], collapse = ", "),
+         k = length(itemset),
+         support = L_df$support[i],
+         support_ratio = L_df$support_ratio[i],
+         stringsAsFactors = FALSE
+       )
+     }))
+   }
+   do.call(rbind, all_associations)
+}
+
+
+associaciones_L2 <- create_associations_from_L(L2_candidatos_post_arbol)
+associaciones_L3 <- create_associations_from_L(L3_candidatos_post_arbol)
+associaciones_L4 <- create_associations_from_L(L4_candidatos_post_arbol)
+
+
+# associaciones_L2
+#                       lhs                rhs k support support_ratio
+# 1        Faros de Xenon Control de Velocidad 2       5         0.625
+# 2  Control de Velocidad       Faros de Xenon 2       5         0.625
+# 3        Faros de Xenon            Bluetooth 2       5         0.625
+# 4             Bluetooth       Faros de Xenon 2       5         0.625
+# 5  Control de Velocidad            Bluetooth 2       4         0.500
+# 6             Bluetooth Control de Velocidad 2       4         0.500
+ 
+
+
+#7ª FASE -----------------------------------------------------------------------------------
+
+confidence_threshold <- 0.8
+
+
+convert_numeric_str_to_text_str <- function(num_str, map_rev) {
+   nums_numeric <- split_itemset(num_str) 
+   nums_char <- as.character(nums_numeric)
+   names <- unname(map_rev[nums_char])
+   paste(names, collapse = ", ") 
+}
+
+soporte_L1_map_df <- data.frame(
+   lhs_str = names(frequency),
+   lhs_support = as.integer(frequency),
+   stringsAsFactors = FALSE
+)
+
+soporte_L2_map_df <- data.frame(
+   lhs_str = sapply(soporte_arbol_L2$itemset, convert_numeric_str_to_text_str, map_rev = item_map_rev),
+   lhs_support = soporte_arbol_L2$support,
+   stringsAsFactors = FALSE
+)
+
+soporte_L3_map_df <- data.frame(
+   lhs_str = sapply(soporte_arbol_L3$itemset, convert_numeric_str_to_text_str, map_rev = item_map_rev),
+   lhs_support = soporte_arbol_L3$support,
+   stringsAsFactors = FALSE
+)
+
+master_support_lookup <- rbind(soporte_L1_map_df, soporte_L2_map_df, soporte_L3_map_df)
+master_support_lookup <- na.omit(master_support_lookup)
+
+
+# --- Step 2: Define Function to Calculate Confidence (NO Filter) ---
+# (This function is modified)
+
+calculate_and_filter_confidence <- function(associations_df, support_lookup, threshold) {
+   if (nrow(associations_df) == 0) {
+     return(data.frame(
+       lhs = character(),
+       rhs = character(),
+       k = integer(),
+       support_ratio = numeric(),
+       confidence = numeric(),
+       stringsAsFactors = FALSE
+     ))
+   }
+   
+   merged_df <- merge(associations_df, support_lookup, by.x = "lhs", by.y = "lhs_str", all.x = TRUE)
+   
+   merged_df$lhs_support[is.na(merged_df$lhs_support)] <- 0
+   
+   merged_df$confidence <- merged_df$support / merged_df$lhs_support
+   
+   merged_df$confidence[is.nan(merged_df$confidence)] <- 0
+   
+   strong_rules <- merged_df[, c("lhs", "rhs", "k", "support_ratio", "confidence")]
+   
+   # Modificado: No filtrar por threshold aquí, solo ordenar
+   strong_rules[order(-strong_rules$confidence), ]
+}
+
+
+reglas_fuertes_L2 <- calculate_and_filter_confidence(associaciones_L2, master_support_lookup, confidence_threshold)
+reglas_fuertes_L3 <- calculate_and_filter_confidence(associaciones_L3, master_support_lookup, confidence_threshold)
+reglas_fuertes_L4 <- calculate_and_filter_confidence(associaciones_L4, master_support_lookup, confidence_threshold)
+
+# Para ver los resultados finales, simplemente imprime las variables:
+print("Reglas Fuertes L2 (ordenadas por confianza):")
+print(reglas_fuertes_L2)
+
+print("Reglas Fuertes L3 (ordenadas por confianza):")
+print(reglas_fuertes_L3)
+
+print("Reglas Fuertes L4 (ordenadas por confianza):")
+print(reglas_fuertes_L4)
+
+# Filtrado final (opcional, si quieres un data.frame solo con las que superan el umbral)
+reglas_finales_L2 <- subset(reglas_fuertes_L2, confidence >= confidence_threshold)
+reglas_finales_L3 <- subset(reglas_fuertes_L3, confidence >= confidence_threshold)
+reglas_finales_L4 <- subset(reglas_fuertes_L4, confidence >= confidence_threshold)
+
+print("--- Reglas que superan el umbral de confianza (0.8) ---")
+print(reglas_finales_L2)
+print(reglas_finales_L3)
+print(reglas_finales_L4)

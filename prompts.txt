@@ -1,0 +1,93 @@
+Promp_Fase1:
+From the image i have just sent you i need to use a support threshold of 80% in order 
+to decide which of the elements ("Faros de Xenon", "Alarma" and so on) go through and 
+are going to be consider in the next step to start creating the candidates subsets. 
+So in the image i have just sent you it is clear that i an identify the number of 
+times each element appears, so how can i go through them all dividing the number 
+of times they appear and dividing it by the amount of "sucesos"
+that there are (there are 8) so that i get the percentages of the times they appear
+for a subset of 8 elements and can discriminate which elements surpass the 0.5 threshold
+
+Promp_Fase2:
+Okey great lets continue on to the next step. In this next step i need you get
+the candidate subsets that are going to form up to 4 dimmensions 
+(because 4 elements passed the threshold). 
+
+In case you do not know how this candidates subsets are formed, 
+you need to start with the lowest dimmension possible other that K=1 and so 
+for this dimmension and the follwing you need to have subsets in which the last 
+element of the subset are different and the previous ones are exactly the same 
+in order to combine them.
+
+For example, for the dimmension k=2 we need to combine the subsets 
+that passed the threshold in a way that the new subsets that are formed with 
+to subsets of the k=1 dimmension have the last element different and the rest are the same.
+In this dimmension because there are combinations of subsets of 1 elements you basically
+need to have all possible combinations of the k=1 subsets .
+
+But for the k=3 and so on you need to combine sets of k=2 o k=k-1 respectively
+following the rules I told you so for example if we have {X,C} and {X,N} which
+are from the k=2 dimmension then we can combine them because it follows the 
+rules i mentioned obtaining anew subset of {X,C,N} for the dimmension k=3.
+
+And for yout information the elements that passed the threshold were Faros de Xenon, 
+Control de Velocidad, Navegador, Bluetooth.
+
+Prompt_Fase3:
+Okey great, thanks, lets move on to the next step, now we need to start working 
+with tree structures, first you are going to focus on the candidates subsets, 
+which first need to be transformed the words into numbers, using this transformation: 
+{ Faros de Xenon =1, Control de Velocidad = 2, Navegador =3, Bluetooth =4, Techo Solar =5,
+Alarma =6). Once you transform the candidates to the numbers, this numbers must be sorted, 
+for example if you have a subset that ends up being 243, it has to trasform to 234.
+
+Prompt_Fase4:
+okey, so the next step is to transform all the elementos of the sample to the numbers
+following this mapping function, so that as we have done for the candidate
+ subsets we can transform the sample into trees of k=2, 3 and 4 dimmensions .
+
+The way of getting the subsets of those dimmensions if basically combining all possible
+ ways the values of the sample subsets so that you get subsets of size =2, 3 or 4. 
+Another critical thing is that you need to have the numbers sorted ascendingly so 
+if for example one subset is {2,3,1} it has to be {1,2,3} before it gets transformed 
+to a tree. So with that being said, this is the mapping:
+item_map <- c( + "Faros de Xenon" = 1, + "Control de Velocidad" = 2, + "Navegador" = 3,
++ "Bluetooth" = 4, + "Techo Solar" = 5, + "Alarma" = 6 + ) 
+
+And this is sample that needs to be transformed first into numbers and then into subsets
+of size = 2, 3 and 4 so that the trees of this samples are created:
+muestra <- Matrix(c(1,1,1,1,0,0, 1,1,0,1,1,0, 1,1,1,0,0,0, 1,0,1,1,1,0, 1,1,0,1,0,0, 
+0,0,1,0,0,0, 1,1,0,1,0,0, 0,0,0,0,1,1), nrow = 8, ncol = 6, byrow=TRUE, 
+dimnames = list(c("suceso1", "suceso2", "suceso3", "suceso4", "suceso5", "suceso6", 
+"suceso7", "suceso8"), c("Faros de Xenon", "Control de Velocidad", "Navegador", 
+"Bluetooth", "Techo Solar", "Alarma")),sparse=TRUE).
+
+The trees need to be done for every level for every subset of the sample.
+
+Prompt_Fase5:
+okey great, we can now move on to the next phase which consists on counting 
+how many times do the leafs of the candidates tree in each level appear 
+in each of the sample trees as this values need to be counted in order 
+to see which of the candidates subsets move on to the next phase.
+
+okey, great no that i have the supports for every tree subset, 
+we need to filter by threshold that i have already defined previously 
+support_threshold <- 0.5. The ones that pass the cut will pass on to 
+the next phase.
+
+Prompt_Fase6:
+Okay, we can move onto the next phase, no we have to create associations 
+from every level (L2, L3, L4) . The amount of associations that can be 
+created for each subset of each level follows the following formula: 2^k-2. 
+So for example for every subset of k=2, there are two possible associations. 
+
+Before you start creating every association for each subset you have to reverse 
+the numeric values for the words that we previously changed.
+
+Prompt_Fase7:
+so now we enter the last phase, we need to evaluate the confidence threshold 
+for every association we created. In my case the confidence threshold will be of 
+0.8 can you help me analyze this last phase for all the associations in every 
+level please.
+
+And also, do not incorporate prunning to the code.
