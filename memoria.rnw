@@ -159,6 +159,437 @@ for (i in 1:length(res))
 
 \newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ejercicio 2.1: Análisis Descriptivo de Distancias}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Descripción del conjunto de datos y objetivo}
+En este ejercicio se hace uso de un fichero \texttt{distancias.txt}, que dispone de observaciones emparejadas de:
+\begin{itemize}
+\item \textbf{Población de residencia} (variable cualitativa nominal), y
+\item \textbf{Distancia en km} desde el domicilio del estudiante hasta la Universidad (variable cuantitativa continua).
+\end{itemize}
+El enunciado cuenta con el universo de datos y los valores a emplear en este apartado, por ejemplo: \emph{Villalbilla, 16.5; Ensanche de Vallecas, 34.8; Alcalá de Henares, 6.2; …; Madrid, 46; ND, 3.7; …}. La presencia del marcador \textbf{ND} indica casos con localidad no disponible para esa observación, mientras que la distancia sí está informada. Estos pares {población, distancia} constituyen la base para el \textbf{análisis descriptivo} requerido en el ejercicio 2.1: ordenar por distancia, calcular rango, tablas de frecuencias (absoluta, acumulada, relativa) e indicadores de tendencia y dispersión sobre la variable cuantitativa.
+
+\paragraph{Estructura del fichero.}
+El fichero \texttt{distancias.txt} se lee con cabecera (\texttt{header = TRUE}) y contiene dos columnas:
+\begin{center}
+\begin{tabular}{ll}
+\texttt{población} & (carácter/factor): nombre de la población o \texttt{ND} si no consta. \\[2pt]
+\texttt{distancia} & (numérico, km): distancia real en kilómetros con decimales. \\
+\end{tabular}
+\end{center}
+
+\paragraph{Calidad y decisiones sobre datos.}
+\begin{itemize}
+\item \textbf{Unidades y formato:} la distancia está en kilómetros; se preservan los decimales tal y como aparecen en el enunciado (p. ej., 16.5, 34.8, 31.4).
+\item \textbf{Valores ND en \texttt{población}:} no impiden el análisis cuantitativo porque la métrica principal se aplica sobre \texttt{distancia}. Se mantienen sin imputación ni eliminación, preservando la consistencia del conjunto.
+\item \textbf{Duplicados intencionales:} algunas parejas se repiten (p. ej., \emph{Cifuentes, 24} o varias \emph{Guadalajara, 30}), lo que es coherente con un conteo de frecuencias donde se esperan empates de distancia por redondeo.
+\end{itemize}
+
+\subsubsection*{Fundamentos teóricos del análisis descriptivo}
+
+El análisis estadístico descriptivo tiene como finalidad resumir y comprender la información contenida en un conjunto de datos mediante medidas que describen su tendencia central, su variabilidad y su forma. En este ejercicio se aplican dichos conceptos sobre la variable \texttt{distancia}, de naturaleza cuantitativa continua.
+
+\paragraph{Tipos de variables.}
+De acuerdo con la tipología presentada en la Lección 1:
+\begin{itemize}
+  \item Una \textbf{variable cualitativa nominal} (como \texttt{población}) clasifica observaciones en categorías sin orden inherente.
+  \item Una \textbf{variable cuantitativa continua} (como \texttt{distancia}) toma valores numéricos dentro de un rango real y admite decimales.
+\end{itemize}
+
+\paragraph{Frecuencias y distribuciones.}
+Sea un conjunto de observaciones $x_1, x_2, \ldots, x_n$.  
+La \textbf{frecuencia absoluta} $f_i$ indica cuántas veces aparece cada valor o intervalo.  
+La \textbf{frecuencia relativa} $r_i$ se define como $r_i = f_i / n$, expresando la proporción de casos.  
+Las \textbf{frecuencias acumuladas} ($F_i$, $R_i$) suman las observaciones hasta cada valor:
+\[
+F_i = \sum_{j \le i} f_j, \qquad
+R_i = \sum_{j \le i} r_j
+\]
+Estas medidas permiten construir la distribución empírica de la variable y analizar su forma.
+
+\paragraph{Medidas de tendencia central.}
+Entre los valores posibles de una variable cuantitativa, la \textbf{media aritmética} representa el centro de gravedad de la distribución:
+\[
+\bar{x} = \frac{1}{n} \sum_{i=1}^n x_i
+\]
+La media es sensible a valores extremos y resume el nivel típico de la variable.
+
+\paragraph{Medidas de dispersión.}
+La \textbf{dispersión} refleja cuánto se alejan los datos de la media:
+\begin{itemize}
+  \item El \textbf{rango} mide la amplitud total de la distribución: $\max(x) - \min(x)$.
+  \item La \textbf{varianza poblacional} cuantifica la media de las desviaciones cuadráticas:
+  \[
+  \sigma^2 = \frac{1}{N} \sum_{i=1}^{N} (x_i - \bar{x})^2
+  \]
+  \item La \textbf{varianza muestral} incorpora la corrección de Bessel:
+  \[
+  s^2 = \frac{1}{n-1} \sum_{i=1}^{n} (x_i - \bar{x})^2
+  \]
+  \item La \textbf{desviación estándar} es la raíz cuadrada de la varianza y mantiene las mismas unidades que la variable original.
+\end{itemize}
+
+\paragraph{Interpretación aplicada.}
+En el contexto de este ejercicio, la media representa la distancia promedio de los estudiantes al campus, mientras que el rango y la desviación estándar indican la heterogeneidad geográfica del grupo. Una desviación alta implica dispersión en la procedencia, y una baja, concentración en torno a una distancia media.
+
+
+\subsubsection*{Definición y explicación de las funciones utilizadas}
+
+\paragraph{1. Funciones de conteo y estructura de datos.}
+\begin{itemize}
+\item \textbf{\texttt{contar\_filas(vec)}}: esta función toma un vector y recorre sus elementos haciendo uso de un bucle \texttt{for}. En cada iteración incrementa un contador inicializado a cero. El resultado final es el número total de elementos del vector. Se trata de un equivalente de la función \texttt{length()} de R, pero implementada manualmente. El mecanismo subyacente consiste en una lectura secuencial del vector y acumulación iterativa. El valor retornado permite validar la carga correcta del fichero y es utilizado posteriormente para el cálculo de frecuencias relativas. \ \textit{Argumentos:} \texttt{vec} (vector de cualquier tipo). \ \textit{Devuelve:} un entero con el número total de elementos.
+
+<<contar_filas, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para contar filas 
+contar_filas <- function(vec) {
+  # Se inicializa el contador
+  n <- 0
+  # Se itera elemento a elemento y se incrementa el contador
+  for (._ in vec) n <- n + 1
+  # Se retorna el total contado
+  n
+}
+@
+
+\item \textbf{\texttt{contar\_columnas(df)}}: de modo análogo a la función anterior, recorre la lista de nombres de las columnas (\texttt{names(df)}) y aplica el mismo proceso de conteo. Permite verificar la integridad estructural del conjunto de datos leído. \ \textit{Argumentos:} \texttt{df} (\texttt{data.frame}). \ \textit{Devuelve:} un entero con el número de columnas.
+
+<<contar_columnas, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para contar columnas 
+contar_columnas <- function(df) {
+  # Se inicializa el contador
+  c <- 0
+  # Se itera sobre los nombres de las columnas y se incrementa el contador
+  for (._ in names(df)) c <- c + 1
+  # Se retorna el total contado
+  c
+}
+@
+
+\item \textbf{\texttt{contar\_elementos(x)}}: versión genérica aplicable a cualquier tipo de vector. Es un ejemplo de \emph{abstracción algorítmica}, ya que encapsula el patrón de conteo iterativo en una única función reutilizable, sin depender del tipo de dato.
+
+<<contar_elementos, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para contar cuántos elementos hay en un vector (sin length)
+contar_elementos <- function(x) {
+  # Se inicializa el contador
+  n <- 0
+  # Se incrementa por cada elemento del vector
+  for (._ in x) n <- n + 1
+  # Se retorna el total
+  n
+}
+@
+
+\paragraph{2. Función de ordenación: \texttt{ordenar\_indices(x, decreasing = FALSE)}.}
+Esta función reproduce el algoritmo clásico de \emph{ordenamiento por burbuja}, donde se realizan comparaciones sucesivas entre pares adyacentes mediante estructuras de control anidadas. El vector de entrada \texttt{x} no se reordena directamente, sino que se construye un vector de \emph{índices} que indica el orden en que los elementos deberían aparecer para estar ordenados. Durante el proceso, se comparan los pares adyacentes e intercambian los índices cuando la condición de orden no se cumple (\texttt{x[i] > x[i+1]} o la inversa si \texttt{decreasing = TRUE}). Tras varias pasadas, los elementos mayores “flotan” hacia el final del vector. \ \textit{Argumentos:} \texttt{x} (vector numérico o comparable), \texttt{decreasing} (lógico, indica si el orden debe ser descendente). \ \textit{Devuelve:} un vector de índices con el orden resultante.
+
+<<ordenar_indices, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para ordenar índices 
+ordenar_indices <- function(x, decreasing = FALSE) {
+  # Se cuenta manualmente el número de elementos
+  n <- 0
+  for (._ in x) n <- n + 1
+  # Se crea un vector con los índices 1..n
+  idx <- 1:n
+  # Se aplica un algoritmo de ordenamiento (burbuja)
+  for (i in 1:(n - 1)) {
+    for (j in (i + 1):n) {
+      # Si el orden es ascendente se compara menor que, si es descendente mayor que
+      if ((!decreasing && x[j] < x[i]) || (decreasing && x[j] > x[i])) {
+        # Intercambiar elementos
+        tmp <- x[i]; x[i] <- x[j]; x[j] <- tmp
+        # Intercambiar índices
+        tmp2 <- idx[i]; idx[i] <- idx[j]; idx[j] <- tmp2
+      }
+    }
+  }
+  # Se retornan los índices ordenados
+  idx
+}
+@
+
+\paragraph{3. Función de rango: \texttt{rango\_manual(x)}.}
+El rango se define como la diferencia entre el valor máximo y el mínimo del conjunto de datos. En lugar de usar las funciones \texttt{max()} y \texttt{min()}, esta función inicia dos variables (\texttt{max} y \texttt{min}) con el primer valor del vector y las actualiza secuencialmente si encuentra un valor mayor o menor. Al finalizar, devuelve la diferencia entre ambos valores, cuantificando la amplitud total de la variable. El rango es una medida de dispersión simple que representa la diferencia entre el estudiante más próximo y el más lejano a la universidad. \ \textit{Argumentos:} \texttt{x} (vector numérico). \ \textit{Devuelve:} un valor numérico correspondiente al rango.
+
+<<rango_manual, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para calcular el rango 
+rango_manual <- function(x) {
+  # Inicializar máximo y mínimo con el primer valor
+  maximo <- x[1]
+  minimo <- x[1]
+  # Iterar sobre los valores para encontrar máximo y mínimo
+  for (valor in x) {
+    # Si el valor es mayor que el máximo actual, actualizar máximo
+    if (valor > maximo) maximo <- valor
+    # Si el valor es menor que el mínimo actual, actualizar mínimo
+    if (valor < minimo) minimo <- valor
+  }
+  # Retornar el rango
+  maximo - minimo
+}
+@
+
+\paragraph{4. Obtención de valores únicos: \texttt{valores\_unicos\_manual(x)}.}
+Esta función construye un nuevo vector \texttt{unicos} inicializado vacío y recorre todos los elementos de \texttt{x}. En cada iteración comprueba si el valor actual ya está dentro de \texttt{unicos}; si no lo está, se incorpora mediante concatenación. Al finalizar el bucle, se ordenan los valores resultantes haciendo uso de los índices obtenidos con la función \texttt{ordenar\_indices()}. Este proceso combina una búsqueda secuencial (comparación elemento a elemento) con una inserción condicional, y es esencial para construir las tablas de frecuencias. \ \textit{Argumentos:} \texttt{x} (vector numérico o de caracteres). \ \textit{Devuelve:} un vector de valores únicos ordenados.
+
+<<valores_unicos_manual, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para obtener valores únicos
+valores_unicos_manual <- function(x) {
+  # En primer lugar, se crea un vector vacío para almacenar los valores únicos
+  unicos <- c()
+  # Se itera sobre cada valor
+  for (v in x) {
+    # Flag para indicar si el valor ya fue encontrado
+    encontrado <- FALSE
+    # Se verifica si el valor ya está en el vector de valores únicos
+    for (u in unicos) {
+      if (v == u) { encontrado <- TRUE; break }
+    }
+    # Si el valor no fue encontrado, se agrega al vector de valores únicos
+    if (!encontrado) unicos <- c(unicos, v)
+  }
+  # Se ordenan los valores únicos y se retornan
+  unicos[ordenar_indices(unicos)]
+}
+@
+
+\paragraph{5. Frecuencias: conteo, acumulación y normalización.}
+\begin{itemize}
+\item \textbf{\texttt{frecuencia\_absoluta\_manual(x, valores\_ordenados)}}: recibe el vector original y el conjunto de valores únicos previamente ordenado. Para cada valor único, recorre nuevamente el vector \texttt{x} y aumenta el contador correspondiente cuando encuentra coincidencias. El resultado es un vector de igual longitud que \texttt{valores\_ordenados}, donde cada posición representa cuántas veces aparece el valor correspondiente. La función utiliza una estructura de bucles anidados que refuerza la comprensión del proceso de clasificación en categorías. Reproduce el comportamiento de \texttt{table()} de R, pero implementado manualmente. \ \textit{Argumentos:} \texttt{x} (vector de datos), \texttt{valores\_ordenados} (vector de únicos). \ \textit{Devuelve:} un vector numérico con las frecuencias absolutas.
+
+<<frecuencia_absoluta_manual, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para calcular la frecuencia absoluta 
+frecuencia_absoluta_manual <- function(x, valores_ordenados) {
+  # Se obtiene el número de valores únicos
+  k <- contar_elementos(valores_ordenados)
+  # Inicializar el vector de frecuencias absolutas
+  frec <- numeric(k)
+  # Se itera sobre cada valor observado
+  for (v in x) {
+    # Se compara con cada valor único
+    for (i in 1:k) {
+      # Si coincide, se incrementa la frecuencia absoluta correspondiente
+      if (v == valores_ordenados[i]) { frec[i] <- frec[i] + 1; break }
+    }
+  }
+  # Se retorna el vector de frecuencias
+  frec
+}
+@
+
+\item \textbf{\texttt{acumulada\_manual(vec)}}: calcula la suma progresiva de los elementos de un vector. Se inicializa un acumulador que, en cada iteración, añade el valor actual y lo almacena en un nuevo vector. Esta función ejemplifica un algoritmo iterativo que modela una suma acumulada sin funciones de orden superior. \ \textit{Argumentos:} \texttt{vec} (vector numérico). \ \textit{Devuelve:} un vector numérico de igual longitud con las sumas acumuladas.
+
+<<acumulada_manual, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para calcular la frecuencia acumulada 
+acumulada_manual <- function(vec) {
+  # Se cuenta cuántos elementos tiene el vector
+  n <- contar_elementos(vec)
+  # Inicializar el vector de frecuencias acumuladas
+  out <- numeric(n)
+  # Se suman progresivamente las frecuencias
+  acum <- 0
+  for (i in 1:n) { acum <- acum + vec[i]; out[i] <- acum }
+  # Se retorna la acumulada
+  out
+}
+@
+
+\item \textbf{\texttt{relativa\_manual(frec\_abs, total)}}: transforma las frecuencias absolutas en relativas dividiendo cada componente de \texttt{frec\_abs} entre el número total de observaciones. La precisión de este paso depende de que \texttt{total} coincida con el número real de filas, garantizado mediante \texttt{contar\_filas()}. El resultado permite interpretar los valores en términos porcentuales y facilita la construcción de histogramas o distribuciones empíricas. \ \textit{Argumentos:} \texttt{frec\_abs} (vector numérico), \texttt{total} (entero). \ \textit{Devuelve:} un vector de frecuencias relativas en $[0,1]$.
+\end{itemize}
+
+<<relativa_manual, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para calcular la frecuencia relativa manual
+relativa_manual <- function(frec_abs, total) {
+  # Se cuenta el tamaño del vector de frecuencias absolutas
+  n <- contar_elementos(frec_abs)
+  # Inicializar el vector de frecuencias relativas
+  out <- numeric(n)
+  # Se calcula dividiendo la frecuencia absoluta entre el total de filas
+  for (i in 1:n) out[i] <- frec_abs[i] / total
+  # Se retorna la frecuencia relativa
+  out
+}
+@
+\end{itemize}
+
+\paragraph{6. Medidas de tendencia central y dispersión.}
+\begin{itemize}
+\item \textbf{\texttt{media\_manual(x)}}: la media se obtiene sumando todos los elementos del vector y dividiendo por el número total de observaciones. Los valores se acumulan en un bucle \texttt{for}, asegurando que el acumulador se inicialice a cero para evitar errores. Este proceso muestra explícitamente cómo la media representa el centro de gravedad de la distribución de datos. \ \textit{Argumentos:} \texttt{x} (vector numérico). \ \textit{Devuelve:} la media aritmética.
+
+<<media_manual, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para calcular la media 
+media_manual <- function(x) {
+  # Se incializa la suma a cero
+  suma <- 0
+  # Se cuenta el número de elementos
+  n <- contar_elementos(x)
+  # Se suma cada valor
+  for (v in x) suma <- suma + v
+  # Se retorna la media
+  suma / n
+}
+@
+
+\item \textbf{\texttt{varianza\_poblacional\_manual(x)}} y \textbf{\texttt{varianza\_muestral\_manual(x)}}: ambas funciones siguen la definición formal de la varianza. Primero se calcula la media con \texttt{media\_manual(x)}, luego se recorre el vector calculando la desviación cuadrática de cada elemento respecto a la media, y se acumula el resultado. La versión muestral aplica la corrección de Bessel ($N-1$) para eliminar el sesgo en la estimación de la varianza poblacional. La comparación entre ambas versiones permite apreciar cómo la corrección de Bessel evita la subestimación sistemática de la varianza cuando solo se dispone de una muestra. \ \textit{Argumentos:} \texttt{x} (vector numérico). \ \textit{Devuelve:} un valor numérico (varianza poblacional o muestral).
+
+<<varianzas, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para calcular la varianza poblacional 
+varianza_poblacional_manual <- function(x) {
+  # Se cuenta el número de elementos
+  n <- contar_elementos(x)
+  # Se calcula la media manualmente
+  m <- media_manual(x)
+  # Se calcula la suma de los cuadrados de las diferencias respecto a la media
+  suma_cuad <- 0
+  for (v in x) suma_cuad <- suma_cuad + (v - m)^2
+  # Varianza poblacional: dividir entre N
+  suma_cuad / n
+}
+
+# Función para calcular la varianza muestral 
+varianza_muestral_manual <- function(x) {
+  # Se cuenta el número de elementos
+  n <- contar_elementos(x)
+  # Si no hay suficientes datos, se retorna NA
+  if (n <= 1) return(NA_real_)
+  # Se calcula la media manualmente
+  m <- media_manual(x)
+  # Se calcula la suma de los cuadrados de las diferencias respecto a la media
+  suma_cuad <- 0
+  for (v in x) suma_cuad <- suma_cuad + (v - m)^2
+  # Varianza muestral: dividir entre (N - 1)
+  suma_cuad / (n - 1)
+}
+@
+
+\item \textbf{\texttt{desv\_estandar(varianza)}}: toma la raíz cuadrada de la varianza mediante el operador \texttt{sqrt()}, devolviendo una medida de dispersión expresada en las mismas unidades que la variable original (kilómetros). Esta equivalencia de unidades facilita la interpretación práctica, ya que permite afirmar, por ejemplo, que “la distancia media difiere en aproximadamente 20 km respecto al promedio”. \ \textit{Argumentos:} \texttt{varianza} (valor numérico). \ \textit{Devuelve:} la desviación estándar.
+
+<<desv_estandar, eval=TRUE, echo=TRUE, results=hide>>=
+# Función para obtener la desviación estándar a partir de una varianza
+desv_estandar <- function(varianza) {
+  # Si la varianza es NA, se retorna NA
+  if (is.na(varianza)) return(NA_real_)
+  # Se calcula la raíz cuadrada de la varianza
+  sqrt(varianza)
+}
+@
+\end{itemize}
+
+\paragraph{7. Integración en el flujo principal.}
+Las funciones anteriores se integran secuencialmente en el flujo de trabajo del ejercicio:
+\begin{enumerate}
+\item Carga del fichero \texttt{distancias.txt} en el \texttt{data.frame} \texttt{s}.
+\item Verificación estructural mediante las funciones de conteo.
+\item Ordenación de observaciones y creación de los data frames \texttt{so\_asc} y \texttt{so\_desc}.
+\item Cálculo del rango, valores únicos y tabla de frecuencias.
+\item Derivación de medidas de resumen (media, varianzas y desviación estándar).
+\end{enumerate}
+Cada función ha sido implementada con independencia modular, lo que facilita su verificación individual, su reutilización en otros análisis y la trazabilidad completa del proceso estadístico.
+
+\subsubsection*{Ejecución del script principal}
+
+En este bloque se ejecuta el flujo completo del ejercicio, integrando todas las funciones definidas anteriormente.  
+El objetivo es validar su correcto funcionamiento y mostrar los resultados del análisis descriptivo sobre el conjunto de datos \texttt{distancias.txt}.
+
+<<ejecucion_principal, eval=TRUE, echo=TRUE, results=verbatim>>=
+# ============================
+# Script principal 
+# ============================
+
+# Se lee el archivo de datos
+s <- read.table("distancias.txt", header = TRUE)
+print(s)
+
+# Contar filas y columnas manualmente
+filas <- contar_filas(s$distancia)
+columnas <- contar_columnas(s)
+cat("Dimensiones (filas x columnas): ", filas, " x ", columnas, "\n", sep = "")
+
+# Ordenación ascendente y descendente
+idx_asc  <- ordenar_indices(s$distancia)
+idx_desc <- ordenar_indices(s$distancia, decreasing = TRUE)
+so_asc  <- s[idx_asc, ]
+so_desc <- s[idx_desc, ]
+cat("Orden ascendente por distancia:\n"); print(so_asc)
+cat("\nOrden descendente por distancia:\n"); print(so_desc); cat("\n")
+
+# Rango
+rangor <- rango_manual(s$distancia)
+cat("Rango (max - min):", rangor, "\n\n")
+
+# Valores únicos y frecuencias
+valores_unicos <- valores_unicos_manual(s$distancia)
+n_valores <- contar_elementos(valores_unicos)
+frecuencia_abs <- frecuencia_absoluta_manual(s$distancia, valores_unicos)
+frecuencia_acum <- acumulada_manual(frecuencia_abs)
+frecuencia_rel <- relativa_manual(frecuencia_abs, filas)
+frecuencia_rel_acum <- acumulada_manual(frecuencia_rel)
+
+# Mostrar frecuencias
+cat("Frecuencia absoluta:\n")
+for (i in 1:n_valores) cat(valores_unicos[i], ":", frecuencia_abs[i], "\n")
+cat("\nFrecuencia acumulada:\n")
+for (i in 1:n_valores) cat(valores_unicos[i], ":", frecuencia_acum[i], "\n")
+cat("\nFrecuencia relativa:\n")
+for (i in 1:n_valores) cat(valores_unicos[i], ":", frecuencia_rel[i], "\n")
+cat("\nFrecuencia relativa acumulada:\n")
+for (i in 1:n_valores) cat(valores_unicos[i], ":", frecuencia_rel_acum[i], "\n")
+
+# Medidas descriptivas
+media <- media_manual(s$distancia)
+varianza_poblacional <- varianza_poblacional_manual(s$distancia)
+varianza_muestral <- varianza_muestral_manual(s$distancia)
+desv_est_poblacional <- desv_estandar(varianza_poblacional)
+desv_est_muestral <- desv_estandar(varianza_muestral)
+
+cat("\nMedia:", media, "\n")
+cat("Varianza poblacional:", varianza_poblacional, "\n")
+cat("Desviación estándar poblacional:", desv_est_poblacional, "\n")
+cat("Varianza muestral:", varianza_muestral, "\n")
+cat("Desviación estándar muestral:", desv_est_muestral, "\n")
+@
+
+\subsubsection*{AI-assisted development}
+
+The following prompts were used during the development of this exercise to refine the logic of manual implementations, the documentation of each function, and the integration within the \texttt{Sweave} environment.  
+All resulting code was subsequently reviewed, tested, and adapted.
+
+\begin{itemize}
+  \item \textbf{Prompt 1:}  
+  \textit{"How can I implement a manual version of the \texttt{length()} function in R using a for loop?"}  
+  Guided the creation of \texttt{contar\_filas()}, \texttt{contar\_columnas()}, and \texttt{contar\_elementos()}, each based on iterative counting.
+
+  \item \textbf{Prompt 2:}  
+  \textit{"Show me how to sort numeric data manually in R using nested loops (bubble sort) and return only the index order."}  
+  Used to design \texttt{ordenar\_indices()}, which reproduces a bubble sort algorithm returning index positions.
+
+  \item \textbf{Prompt 3:}  
+  \textit{"Write an R function that calculates the range of a numeric vector without using \texttt{max()} or \texttt{min()}."}  
+  Inspired the implementation of \texttt{rango\_manual()} through iterative comparison of values.
+
+  \item \textbf{Prompt 4:}  
+  \textit{"How can I manually find unique values in a numeric vector in R, without using \texttt{unique()}?"}  
+  Helped define \texttt{valores\_unicos\_manual()}, combining sequential search and conditional appending.
+
+  \item \textbf{Prompt 5:}  
+  \textit{"Explain how to calculate absolute, cumulative, and relative frequencies manually in R using loops."}  
+  Used to design \texttt{frecuencia\_absoluta\_manual()}, \texttt{acumulada\_manual()}, and \texttt{relativa\_manual()}, which reproduce frequency analysis logic step by step.
+
+  \item \textbf{Prompt 6:}  
+  \textit{"How can I organize multiple R functions with explanations inside a Sweave (.Rnw) document so that each function is displayed with comments but executed only once?"}  
+  Clarified the correct use of chunk options (\texttt{eval=TRUE}, \texttt{echo=TRUE}, \texttt{results=hide}) for reproducible reports.
+
+  \item \textbf{Prompt 7:}  
+  \textit{"How can I integrate all the defined functions into a final executable section that prints descriptive statistics and frequency tables?"}  
+  Used to design the final execution block combining all steps of the descriptive analysis.
+
+  \item \textbf{Prompt 8:}  
+  \textit{"How do I fix a Sweave error saying ‘results=markup not recognized’ when executing a chunk?"}  
+  Guided the correction by replacing \texttt{results=markup} with \texttt{results=verbatim} for Sweave compatibility.
+\end{itemize}
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Ejercicio 2.2: Fases del Algoritmo Apriori}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -776,7 +1207,6 @@ print(reglas_finales_L3)
 print("Reglas Finales L4:")
 print(reglas_finales_L4)
 @
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % FIN DE LAS FASES
