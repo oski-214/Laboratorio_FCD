@@ -25,7 +25,7 @@
 
 % --- Configuración del Documento ---
 \title{Memoria: Implementación del Algoritmo Apriori en R}
-\author{Oscar Morán, Asier Álamo, Edgar Alexis Conforme, Lucía}
+\author{Oscar Morán, Asier Álamo, Edgar Alexis Conforme, Lucía Díaz}
 \date{\today}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -62,6 +62,100 @@ Sweave nos permite generar este informe de manera dinámica, mezclando el texto 
 
 \section{Resolución de Ejercicios}
 A continuación, se detallan los ejercicios resueltos.
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ejercicio 1.2: Análisis de asociación}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+El propósito de este ejercicio es identificar las relaciones y patrones de compra frecuentes entre distintos productos usando Apriori.
+
+\subsubsection{Instalación y Carga de Paquetes}
+El análisis de reglas de asociación en R se facilita mediante el paquete \texttt{arules}.  
+El primer paso fue intentar cargar dicho paquete. Al no estar instalado, se procedió con su instalación desde el repositorio CRAN.  
+
+<<>>=
+# install.packages("arules")
+
+library(arules)
+@
+
+\subsubsection{Creación y Formateo de los Datos}
+Los datos de las cestas de la compra se representaron inicialmente como una matriz binaria, donde 1 indica la presencia de un artículo en una cesta y 0 su ausencia.  
+Para poder utilizar el paquete arules, la matriz tuvo que ser convertida al formato \texttt{transactions}. Este proceso se realizó en varios pasos:
+
+\begin{enumerate}
+\item Convertir la matriz numérica a una matriz lógica ({ngCMatrix}).
+\item Transponer la matriz para que los items queden en las filas.
+\item Convertir la matriz transpuesta final al formato transactions.
+\end{enumerate}
+
+<<>>=
+library(Matrix)
+
+# Creación de la matriz binaria de cestas de compra
+muestra <- Matrix(c(1,1,0,1,1,
+                    1,1,1,1,0,
+                    1,1,0,1,0,
+                    1,0,1,1,0,
+                    1,1,0,0,0,
+                    0,0,0,1,0),
+                  6, 5, byrow=TRUE,
+                  dimnames = list(c("suceso1", "suceso2", "suceso3", 
+                                    "suceso4", "suceso5", "suceso6"),
+                                  c("Pan", "Agua", "Cafe", "Leche", "Naranja")),
+                  sparse=TRUE)
+
+# Conversión a matriz lógica y transposición
+muestrangCMatrix <- as(muestra, "nsparseMatrix")
+traspmuestrangCMatrix <- t(muestrangCMatrix)
+
+# Conversión final al formato transactions
+transacciones <- as(traspmuestrangCMatrix, "transactions")
+
+# Visualizar las transacciones
+transacciones
+@
+
+\subsubsection{Análisis del Conjunto de Datos}
+Con los datos en el formato correcto, se utilizó la función summary() para obtener una visión general de las transacciones.  
+El resumen indicó que ``Pan'' y ``Leche'' son los artículos más frecuentes (presentes en 5 de las 6 cestas), y que el tamaño de las cestas varía de 1 a 4 artículos.
+
+<<>>=
+summary(transacciones)
+@
+
+\subsubsection{Aplicación del Algoritmo Apriori}
+Se aplicó el algoritmo apriori para extraer las reglas de asociación.  
+Se establecieron los siguientes umbrales.
+Tras la ejecución del algoritmo, se generaron 7 reglas de asociación.
+
+\begin{itemize}
+\item \textbf{Soporte mínimo (support)} = 0.5 → la combinación de artículos debe aparecer en al menos el 50\% de todas las transacciones (3 o más cestas).
+\item \textbf{Confianza mínima (confidence)} = 0.8 → la regla A ⇒ B debe cumplirse al menos el 80\% de las veces que aparece A.
+\end{itemize}
+
+<<>>=
+asociaciones <- apriori(transacciones,
+                        parameter = list(support = 0.5, confidence = 0.8))
+
+# Mostrar las reglas generadas
+inspect(asociaciones)
+@
+
+\subsubsection{Conclusiones}
+Del análisis de las reglas se extraen varias conclusiones importantes:
+
+\begin{enumerate}
+\item \textbf{Productos Estrella:} ``Pan'' y ``Leche'' son los productos más comunes, como indican las reglas 1 y 2 y su soporte de 0.833.
+\item \textbf{Asociación Fuerte (Agua y Pan):} La regla \texttt{\{Agua\} ⇒ \{Pan\}} tiene una confianza del 100\%, lo que significa que cada vez que un cliente compró ``Agua'', también compró ``Pan''. El \texttt{lift} de 1.20 indica que esta asociación es un 20\% más frecuente de lo esperado por azar.
+\item \textbf{Asociación Recíproca:} La regla \texttt{\{Pan\} ⇒ \{Agua\}} también es fuerte, con una confianza del 80\%.
+\item \textbf{Regla de Tres Productos:} La regla \texttt{\{Agua, Leche\} ⇒ \{Pan\}} tiene una confianza del 100\%, lo que implica que los tres clientes que compraron ``Agua'' y ``Leche'' juntos también compraron ``Pan''.
+\end{enumerate}
+
+En resumen, el análisis revela una fuerte conexión de compra entre los productos ``Pan'' y ``Agua'', y también una relación significativa entre ``Pan'' y ``Leche''.
+\newpage
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Ejercicio 1.3: Detección de Datos Anómalos}
@@ -1211,6 +1305,165 @@ print(reglas_finales_L4)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % FIN DE LAS FASES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ejercicio 2.3: Detección de Datos Anómalos}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+En este ejercicio se implementaron tres métodos distintos para la detección de datos anómalos, utilizando técnicas estadísticas básicas.  
+Se trabajó con dos variables: \texttt{Velocidad} y \texttt{Temperatura}.  
+
+<<setup, echo=TRUE, message=FALSE>>=
+# Creación del conjunto de datos
+datos <- data.frame(
+  Velocidad = c(10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5),
+  Temperatura = c(7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73)
+)
+
+# Funciones auxiliares del ejercicio 2.1
+contar_elementos <- function(x) {
+  n <- 0
+  for (._ in x) n <- n + 1
+  n
+}
+
+media_manual <- function(x) {
+  suma <- 0
+  n <- contar_elementos(x)
+  for (v in x) suma <- suma + v
+  suma / n
+}
+@
+
+\subsubsection{Medidas de ordenación (Velocidad), Método Caja y Bigotes}
+
+En esta parte del trabajo se buscó identificar posibles valores atípicos en la variable \texttt{Velocidad}.  
+Se calcularon los cinco números resumen (mínimo, Q1, mediana, Q3 y máximo) mediante la función \texttt{fivenum()}.  
+Posteriormente, se aplicó la regla del rango intercuartílico (IQR) para detectar outliers, considerando un dato como atípico si cumple:
+\[
+x < Q_1 - 1.5 \times IQR \quad \text{o} \quad x > Q_3 + 1.5 \times IQR
+\]. Finalmente, se iteró manualmente sobre todos los valores de Velocidad, comparando cada uno con estos límites para identificar y reportar aquellos que quedaban fuera del intervalo.
+
+<<ordenacion_velocidad, echo=TRUE, results=verbatim>>=
+# Resumen de cinco números para Velocidad
+resumen_vel <- fivenum(datos$Velocidad)
+names(resumen_vel) <- c("Mínimo", "Q1", "Mediana", "Q3", "Máximo")
+print(resumen_vel)
+
+# Cálculo del IQR y límites
+IQRv <- resumen_vel["Q3"] - resumen_vel["Q1"]
+lim_inf_v <- resumen_vel["Q1"] - 1.5 * IQRv
+lim_sup_v <- resumen_vel["Q3"] + 1.5 * IQRv
+
+cat("\n--- OUTLIERS en VELOCIDAD ---\n")
+i <- 1
+for (v in datos$Velocidad) {
+  if (v < lim_inf_v || v > lim_sup_v) {
+    cat("Índice:", i, "→ Velocidad =", v, "es un outlier\n")
+  }
+  i <- i + 1
+}
+if (all(datos$Velocidad >= lim_inf_v & datos$Velocidad <= lim_sup_v)) {
+  cat("No se detectaron outliers en velocidad.\n")
+}
+@
+
+
+
+\subsubsection{Medidas de dispersión (Temperatura), Método Desviación Típica}
+
+Se aplicó el método de la desviación típica para detectar valores atípicos en la variable \texttt{Temperatura}.  
+Asumiendo distribución normal, se calculó la media y varianza de forma manual, y se definieron los límites inferior y superior como:
+\[
+L_i = \bar{x} - 2\sigma \quad ; \quad L_s = \bar{x} + 2\sigma
+\]
+Los valores fuera de este intervalo se consideraron atípicos.
+
+<<dispersión_temperatura, echo=TRUE, results=verbatim>>=
+n <- contar_elementos(datos$Temperatura)
+media_temp <- media_manual(datos$Temperatura)
+
+# Varianza y desviación típica manuales
+var_temp <- 0
+for (t in datos$Temperatura) {
+  var_temp <- var_temp + (t - media_temp)^2
+}
+var_temp <- var_temp / n
+desv_temp <- sqrt(var_temp)
+
+# Límites de outliers
+lim_inf_t <- media_temp - 2 * desv_temp
+lim_sup_t <- media_temp + 2 * desv_temp
+
+cat("\n--- OUTLIERS en TEMPERATURA ---\n")
+i <- 1
+for (t in datos$Temperatura) {
+  if (t < lim_inf_t || t > lim_sup_t) {
+    cat("Índice:", i, "→ Temperatura =", t, "es un outlier\n")
+  }
+  i <- i + 1
+}
+@
+
+\subsubsection{Detección por regresión lineal}
+
+Finalmente, se utilizó un enfoque basado en regresión lineal entre \texttt{Velocidad} (variable independiente) y \texttt{Temperatura} (variable dependiente).  
+Se calcularon las medias de Velocidad y Temperatura con las funciones del ejercicio 2.1. Después, se calcularon los coeficientes de la recta de regresión. Los cálculos se hicieron manualmente iterando sobre los datos, sin usar funciones R predefinidas como lm(). 
+Una vez obtenida la recta, se calcularon los residuos. Para cada, se calculó la temperatura estimada y el residuo. Luego, se calculó la desviación típica de los residuos. Y se estableció el criterio de anomalía: un punto se considera un outlier si su residuo absoluto es mayor que dos veces el error estándar de los residuos. Por último, se iteró sobre los residuos para identificar los puntos que cumplían esta condición.
+
+<<regresion_outliers, echo=TRUE, results=verbatim>>=
+x <- datos$Velocidad
+y <- datos$Temperatura
+media_x <- media_manual(x)
+media_y <- media_manual(y)
+
+# Cálculo manual de la pendiente y el intercepto
+num <- 0
+den <- 0
+for (i in seq(contar_elementos(x))) {
+  num <- num + (x[i] - media_x) * (y[i] - media_y)
+  den <- den + (x[i] - media_x)^2
+}
+b1 <- num / den
+b0 <- media_y - b1 * media_x
+
+cat("\nEcuación de regresión manual:\n")
+cat("Temperatura = ", round(b0, 4), " + ", round(b1, 4), " * Velocidad\n")
+
+# Residuos y error estándar
+residuos <- numeric(n)
+for (i in seq(n)) {
+  y_est <- b0 + b1 * x[i]
+  residuos[i] <- y[i] - y_est
+}
+
+suma_res <- 0
+for (r in residuos) suma_res <- suma_res + r^2
+error_est <- sqrt(suma_res / n)
+cat("\nError estándar de los residuos:", round(error_est, 4), "\n")
+
+cat("\n--- OUTLIERS en REGRESIÓN ---\n")
+i <- 1
+for (r in residuos) {
+  if (abs(r) > 2 * error_est) {
+    cat("Índice:", i, "→ Residuo =", round(r, 4), "es un outlier\n")
+  }
+  i <- i + 1
+}
+@
+
+\newpage
+
+
+
+
+
+
 
 \section{Conclusiones}
 [...AQUÍ VA TU TEXTO: Escribe tus conclusiones finales sobre el proyecto. Por ejemplo: "La implementación manual del algoritmo Apriori en R, aunque compleja, permite un entendimiento profundo de sus mecanismos internos, como la generación de candidatos y el conteo de soporte. El uso de Sweave ha sido fundamental para crear este documento reproducible..."]
