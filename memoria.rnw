@@ -1470,6 +1470,16 @@ Posteriormente, se aplicó la regla del rango intercuartílico (IQR) para detect
 x < Q_1 - 1.5 \times IQR \quad \text{o} \quad x > Q_3 + 1.5 \times IQR
 \]. Finalmente, se iteró manualmente sobre todos los valores de Velocidad, comparando cada uno con estos límites para identificar y reportar aquellos que quedaban fuera del intervalo.
 
+\subsubsection*{Prompt de IA Utilizado}
+
+\begin{quote}
+[I have the following dataset of Speed values: {10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5}. I want you to apply the box-and-whisker outlier detection method. To do this, follow these steps: 
+sort the data, calculate the first and third quartiles, compute the interquartile range (IQR) using the formula provided earlier, determine the detection limits, and finally indicate which
+ of the original Speed values fall outside this interval. You are not allowed to use: matrix, boxplot, quantile, length, mean, or sd.]
+\end{quote}
+
+
+
 <<ordenacion_velocidad, echo=TRUE, results=verbatim>>=
 # Resumen de cinco números para Velocidad
 resumen_vel <- fivenum(datos$Velocidad)
@@ -1505,6 +1515,16 @@ L_i = \bar{x} - 2\sigma \quad ; \quad L_s = \bar{x} + 2\sigma
 \]
 Los valores fuera de este intervalo se consideraron atípicos.
 
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+[Now you have to do the same as before but with different data and another method. Analyze the following Temperature dataset: 
+{7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73}. I want you to identify outliers using the standard deviation method. 
+It is important to follow this procedure: calculate the arithmetic mean of all values; compute the standard deviation; then apply the 
+outlier detection rule using the formulas: lower limit = mean(x) − d × standard deviation, and upper limit = mean(x) + d × standard deviation. 
+The code must check the data and indicate which values are outliers because they do not meet this condition. You are not allowed to use: lm, summary, 
+or length.]
+\end{quote}
+
 <<dispersión_temperatura, echo=TRUE, results=verbatim>>=
 n <- contar_elementos(datos$Temperatura)
 media_temp <- media_manual(datos$Temperatura)
@@ -1536,6 +1556,15 @@ for (t in datos$Temperatura) {
 Finalmente, se utilizó un enfoque basado en regresión lineal entre \texttt{Velocidad} (variable independiente) y \texttt{Temperatura} (variable dependiente).  
 Se calcularon las medias de Velocidad y Temperatura con las funciones del ejercicio 2.1. Después, se calcularon los coeficientes de la recta de regresión. Los cálculos se hicieron manualmente iterando sobre los datos, sin usar funciones R predefinidas como lm(). 
 Una vez obtenida la recta, se calcularon los residuos. Para cada, se calculó la temperatura estimada y el residuo. Luego, se calculó la desviación típica de los residuos. Y se estableció el criterio de anomalía: un punto se considera un outlier si su residuo absoluto es mayor que dos veces el error estándar de los residuos. Por último, se iteró sobre los residuos para identificar los puntos que cumplían esta condición.
+
+\subsubsection*{Prompt de IA Utilizado}
+
+\begin{quote}
+[Final exercise. We take the 11 pairs of data {Speed, Temperature}: {10, 7.46; 8, 6.77; 13, 12.74; 9, 7.11; 11, 7.81; 14, 8.84; 6, 6.08; 4, 5.39; 12, 8.15; 7, 6.42; 5, 5.73}. Perform an outlier analysis based on regression residuals, where Speed is the independent variable and Temperature is the dependent variable.
+Please follow these steps manually, without using functions such as lm or summary: first, calculate the mean of Speed and Temperature; then obtain the linear regression coefficients a and b (b = Sxy / Sx²). For each of the 11 points, compute its residual and the standard deviation of the residuals. Finally, the code must indicate which points are outliers according to the condition |yi − ŷi| > d × sr”]
+\end{quote}
+
+
 
 <<regresion_outliers, echo=TRUE, results=verbatim>>=
 x <- datos$Velocidad
