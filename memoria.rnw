@@ -64,7 +64,107 @@ Sweave nos permite generar este informe de manera dinámica, mezclando el texto 
 A continuación, se detallan los ejercicios resueltos.
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ejercicio 1.1: Análisis Descriptivo (Satélites de Urano)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+En este primer ejercicio se realiza un análisis descriptivo básico utilizando las funciones estándar que proporciona R. El objetivo es familiarizarse con la carga de datos, la ordenación y el cálculo de medidas de centralización, posición y dispersión.
+
+\subsubsection{Descripción del conjunto de datos}
+Se utiliza un conjunto de datos con información sobre los satélites menores de Urano (aquellos con radio menor a 50 km). Los datos constan de dos variables:
+\begin{itemize}
+    \item \textbf{Nombre:} variable cualitativa nominal que identifica al satélite (ej. Cordelia, Ofelia).
+    \item \textbf{radio:} variable cuantitativa continua que representa el radio del satélite en kilómetros.
+\end{itemize}
+Los datos se cargan desde el fichero externo \texttt{satelites.txt}.
+
+\subsubsection{Funciones de R utilizadas}
+Para cumplir con los objetivos del análisis, se han empleado las siguientes funciones base de R. Es fundamental comprender sus argumentos y valores de retorno:
+
+\begin{itemize}
+    \item \texttt{read.table(file, header = TRUE)}: Lee un archivo en formato tabular y crea un \textit{data frame}. El argumento \texttt{header = TRUE} indica que la primera línea del archivo contiene los nombres de las variables.
+    \item \texttt{order(x)}: Devuelve un vector de índices permutados que ordenarían el vector \texttt{x} de forma ascendente. Es esencial para reordenar \textit{data frames} completos en función de una columna.
+    \item \texttt{rev(x)}: Invierte el orden de los elementos de un vector. Combinado con \texttt{order}, permite realizar ordenaciones descendentes.
+    \item \texttt{table(x)}: Genera una tabla de frecuencias absolutas, contando las ocurrencias de cada valor único en el vector \texttt{x}.
+    \item \texttt{cumsum(x)}: Calcula la suma acumulada de los elementos de un vector. Se aplica sobre las frecuencias absolutas o relativas para obtener sus versiones acumuladas.
+    \item \texttt{mean(x)} y \texttt{median(x)}: Calculan, respectivamente, la media aritmética y la mediana (el valor central de la distribución).
+    \item \texttt{var(x)} y \texttt{sd(x)}: Calculan la varianza y la desviación típica. Es importante notar que R calcula por defecto las versiones \textbf{muestrales} (dividiendo por $n-1$) y no las poblacionales.
+    \item \texttt{quantile(x, probs)}: Calcula los cuantiles de la distribución correspondientes a las probabilidades indicadas en el argumento \texttt{probs}. Por ejemplo, \texttt{probs = 0.25} devuelve el primer cuartil ($Q_1$).
+    \item \texttt{max(x)} y \texttt{min(x)}: Devuelven los valores máximo y mínimo del vector, utilizados para calcular el rango.
+\end{itemize}
+
+\subsubsection{Implementación en R}
+
+A continuación se muestra el código utilizado para realizar el análisis completo, desde la carga de datos hasta la generación de tablas de frecuencias y el cálculo de estadísticos.
+
+<<ejercicio1_1_analisis, echo=TRUE, results=verbatim>>=
+# 1. Carga de datos
+# Se lee el fichero 'satelites.txt' asumiendo que está en el directorio de trabajo
+s <- read.table("satelites.txt", header = TRUE)
+print("Conjunto de datos original:")
+print(s)
+
+# 2. Ordenación de los datos
+# Ordenación ascendente por la variable 'radio'
+so_asc <- s[order(s$radio), ]
+print("Datos ordenados ascendentemente por radio:")
+print(so_asc)
+
+# Ordenación descendente utilizando rev() sobre el orden
+so_desc <- s[rev(order(s$radio)), ]
+print("Datos ordenados descendentemente por radio:")
+print(so_desc)
+
+# 3. Medidas de Dispersión Básicas (Rango)
+# El rango es la diferencia entre el valor máximo y el mínimo
+rango_val <- max(s$radio) - min(s$radio)
+cat("\nRango del radio (max - min):", rango_val, "km\n")
+
+# 4. Tabla de Frecuencias del Radio
+# Frecuencia Absoluta (ni)
+frec_abs <- table(s$radio)
+# Frecuencia Absoluta Acumulada (Ni)
+frec_abs_acum <- cumsum(frec_abs)
+# Frecuencia Relativa (fi): ni / N
+frec_rel <- frec_abs / length(s$radio)
+# Frecuencia Relativa Acumulada (Fi)
+frec_rel_acum <- cumsum(frec_rel)
+
+# Se combinan en un data frame para una mejor visualización
+tabla_frec <- data.frame(
+  Radio = names(frec_abs),
+  ni = as.integer(frec_abs),
+  Ni = as.integer(frec_abs_acum),
+  fi = round(as.numeric(frec_rel), 3),
+  Fi = round(as.numeric(frec_rel_acum), 3)
+)
+print("Tabla de Frecuencias (Radio):")
+print(tabla_frec)
+
+# 5. Medidas de Posición Central
+media_r <- mean(s$radio)
+mediana_r <- median(s$radio)
+
+cat("\n--- Medidas de Tendencia Central ---\n")
+cat("Media aritmética:", media_r, "km\n")
+cat("Mediana:", mediana_r, "km\n")
+
+# 6. Medidas de Dispersión y Posición No Central
+# Varianza y Desviación Típica muestrales (n-1)
+var_r <- var(s$radio)
+sd_r <- sd(s$radio)
+
+# Cuartiles: se solicitan el 25% (Q1), 50% (Q2/Mediana) y 75% (Q3)
+cuartiles <- quantile(s$radio, probs = c(0.25, 0.50, 0.75))
+
+cat("\n--- Medidas de Dispersión y Cuartiles ---\n")
+cat("Varianza (muestral):", var_r, "\n")
+cat("Desviación Típica (muestral):", sd_r, "km\n")
+cat("Cuartiles (Q1, Q2, Q3):\n")
+print(cuartiles)
+@
+
+\newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Ejercicio 1.2: Análisis de asociación}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
