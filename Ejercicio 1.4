@@ -1,0 +1,37 @@
+# Se instala el paquete Rlof
+install.packages("Rlof")
+library(Rlof)
+# Se define la matriz de datos con 5 observaciones y 2 variables
+# Las variables representan calificaciones en Teoría y Laboratorio de 5 estudiantes
+muestra <- matrix(c(4,4,
+                    4,3,
+                    5,5,
+                    1,1,
+                    5,4), 
+                  byrow = TRUE, ncol = 2)
+# Se asignan nombres a las columnas y filas
+colnames(muestra) <- c("Teoria","Laboratorio")
+rownames(muestra) <- 1:5
+# Se imprime la matriz de datos
+print("Matriz de datos:")
+print(muestra)
+# Se elige el valor de k (número de vecinos)
+k <- 3
+# Se aplica la función lof() del paquete Rlof
+lof_scores <- Rlof::lof(muestra, k = k, method = "manhattan")
+# Se muestran los valores LOF redondeados a 3 decimales
+print(paste("Valores LOF para k =", k, ":"))
+print(round(lof_scores, 3))
+# Se establece un umbral para identificar outliers
+umbral <- 1.5
+# Se identifican los índices de las observaciones que superan el umbral
+outliers <- which(lof_scores > umbral)
+# Se muestran los resultados
+if (length(outliers) == 0) {
+  cat("\nNo se detectaron outliers (LOF <", umbral, ")\n")
+} else {
+  cat("\nObservaciones detectadas como outliers (LOF >", umbral, "):\n")
+  print(outliers)
+  print("Coordenadas de los outliers:")
+  print(muestra[outliers, ])
+}
