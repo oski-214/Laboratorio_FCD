@@ -353,7 +353,7 @@ for (i in 1:length(res))
 
 \newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Ejercicio 1.4: Detección de datos anómalos mediante el método de proximidad (K-NN manual)}
+\subsection{Ejercicio 1.4: Detección de datos anómalos mediante el método de proximidad (K-NN manual) y de densidad (LOF)}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \subsubsection*{Descripción del conjunto de datos}
@@ -363,7 +363,7 @@ Las observaciones se representan como pares ordenados:
 \[
 (4,4), \; (4,3), \; (5,5), \; (1,1), \; (5,4)
 \]
-El objetivo del ejercicio es identificar posibles \emph{datos anómalos} o \emph{outliers} que se alejen significativamente del resto del conjunto, utilizando un método basado en la \textbf{proximidad} entre observaciones en el espacio bidimensional de calificaciones.
+El objetivo del ejercicio es identificar posibles \emph{datos anómalos} o \emph{outliers} que se alejen significativamente del resto del conjunto, utilizando un método basado en la \textbf{proximidad} entre observaciones en el espacio bidimensional de calificaciones. Posteriormente, se vuelve a realizar el ejercicio emplean un método basado en la densidad.
 
 \subsubsection*{Fundamento teórico}
 
@@ -380,7 +380,49 @@ x_i \text{ es anómalo si } d_K(x_i) > d^*
 \]
 En este caso se utiliza \(K = 3\) y \(d^* = 2.5\).
 
-\subsubsection*{Implementación en R}
+\bigskip
+\noindent
+A diferencia del método de proximidad K-NN, el algoritmo \textbf{LOF (Local Outlier Factor)} se basa en la comparación de \textit{densidades locales} en lugar de distancias absolutas.  
+La idea central es que los puntos anómalos no sólo se encuentran lejos de los demás, sino que además están situados en regiones de baja densidad respecto a sus vecinos más próximos.
+
+En este caso, se emplea la \textbf{distancia de Manhattan} como medida de proximidad entre observaciones.  
+Dada dos observaciones \(p = (x_1, y_1)\) y \(o = (x_2, y_2)\), la distancia Manhattan se define como:
+\[
+d(p, o) = |x_1 - x_2| + |y_1 - y_2|
+\]
+Este tipo de distancia es especialmente útil cuando las variables representan magnitudes comparables y se desea penalizar menos los desplazamientos diagonales que en la distancia euclídea.
+
+\medskip
+\noindent
+El algoritmo LOF sigue los siguientes pasos conceptuales:
+
+\begin{enumerate}
+  \item \textbf{Cálculo de las distancias y determinación de los $k$ vecinos más cercanos.}  
+  Para cada punto \(p_i\) se calculan sus distancias Manhattan respecto a todos los demás puntos del conjunto, y se identifican sus \(k\) vecinos más próximos \(N_k(p_i)\).
+  
+  \item \textbf{Estimación de la densidad local.}  
+  La densidad local de un punto se define como el inverso de la distancia media a sus \(k\) vecinos más cercanos:
+  \[
+  D(p_i) = \frac{1}{\frac{1}{k} \sum_{o \in N_k(p_i)} d(p_i, o)}
+  \]
+  De este modo, los puntos situados en regiones densas tienen una densidad alta, mientras que los que se encuentran aislados presentan una densidad baja.
+  
+  \item \textbf{Cálculo del grado de rareza o \textit{DRM}.}  
+  El \textit{DRM} de una observación se obtiene comparando su densidad local con la densidad media de sus vecinos:
+  \[
+  DRM(p_i) = \frac{\frac{1}{k} \sum_{o \in N_k(p_i)} D(o)}{D(p_i)}
+  \]
+  \item \textbf{Interpretación del resultado.}  
+  \begin{itemize}
+    \item Si \( DRM(p_i) \approx 1 \), el punto tiene una densidad similar a la de sus vecinos, por lo que se considera normal.
+    \item Si \( DRM(p_i) > 1 \), el punto se encuentra en una región menos densa que la de sus vecinos, por lo que se considera potencialmente anómalo.
+    \item Valores significativamente superiores a 1 indican \emph{anomalías fuertes}.
+  \end{itemize}
+\end{enumerate}
+
+En resumen, el método LOF evalúa la anomalía de una observación no sólo por su distancia a los demás puntos, sino por su densidad relativa en el entorno local.  
+
+\subsubsection*{Implementación en R de K-NN manual}
 El algoritmo mencionado es implementado de forma completa mediante el uso de funciones de base en R, sin recurrir a paquetes externos.
 
 \paragraph{1) Definición del conjunto de datos.}
@@ -392,7 +434,14 @@ muestra <- matrix(c(4,4,  4,3,  5,5,  1,1,  5,4), nrow = 2, ncol = 5)
 muestra
 @
 
-En la matriz anterior las observaciones se disponen por columnas, es decir, cada \textbf{columna} representa a un estudiante y cada \textbf{fila} una variable (Teoría, Laboratorio).
+La función \texttt{matrix()} construye una matriz a partir de un vector.  
+Sus argumentos principales son:
+\begin{itemize}
+  \item \texttt{data}: vector con los valores que se distribuirán en la matriz (en este caso, las calificaciones de teoría y laboratorio).
+  \item \texttt{nrow} y \texttt{ncol}: número de filas y columnas respectivamente.
+  \item Por defecto, R rellena la matriz por columnas, por lo que en esta configuración cada \textbf{columna} representa un estudiante y cada \textbf{fila} una variable.
+\end{itemize}
+
 Sin embargo, las funciones de análisis de distancias en R esperan que las observaciones estén en filas.
 Por ello, se realiza una transposición de la matriz para adecuarla a este formato:
 
@@ -402,7 +451,7 @@ muestra <- t(muestra)
 muestra
 @
 
-De este punto en adelante, cada fila representa a un estudiante y cada columna a una calificación.
+La función \texttt{t()} (de \textit{transpose}) intercambia filas y columnas de la matriz, de forma que cada \textbf{fila} corresponde ahora a un estudiante y cada \textbf{columna} a una variable (Teoría o Laboratorio).
 
 \paragraph{2) Cálculo de distancias euclídeas.}
 Se calculan todas las distancias euclídeas entre los pares de observaciones.  
@@ -420,6 +469,11 @@ distancia <- as.matrix(dist(muestra))
 distancia
 @
 
+\begin{itemize}
+  \item \texttt{dist(x, method = "euclidean")} calcula una matriz de distancias por pares entre las filas de \texttt{x}, usando por defecto la métrica euclídea.
+  \item La función devuelve un objeto de tipo \texttt{dist}, que se convierte en una matriz convencional mediante \texttt{as.matrix()} para su lectura y posterior procesamiento.
+\end{itemize}
+
 Cada elemento \( d_{ij} \) de la matriz representa la distancia entre los estudiantes \( i \) y \( j \). 
 Todos los elementos de la diagonal son cero, ya que la distancia de un punto a sí mismo es nula.
 
@@ -435,8 +489,14 @@ distanciasord <- distancia
 distanciasord
 @
 
-La primera fila de cada columna es siempre cero (distancia al mismo punto), seguida por las distancias a los vecinos más cercanos.
-La segunda y tercera filas indican los vecinos más próximos, mientras que la cuarta fila contiene la distancia al tercer vecino más cercano (\( K = 3 \)).
+\begin{itemize}
+  \item El bucle \texttt{for} itera sobre las cinco observaciones (una por estudiante).
+  \item La función \texttt{sort(x)} ordena los valores del vector \texttt{x} en orden ascendente.
+  \item La matriz resultante \texttt{distanciasord} contiene las distancias ordenadas por columnas, donde las filas corresponden a los vecinos más cercanos.
+\end{itemize}
+
+La primera fila de cada columna es siempre cero (distancia al mismo punto), seguida por las distancias a los vecinos más próximos.  
+La cuarta fila contiene la distancia al tercer vecino más cercano (\( K = 3 \)).
 
 \paragraph{4) Detección de valores anómalos.}
 Se establece un umbral de decisión \( d^* = 2.5 \).  
@@ -455,6 +515,12 @@ for (i in 1:5) {
 }
 @
 
+\begin{itemize}
+  \item \texttt{umbral} fija la distancia límite para considerar una observación como anómala.
+  \item La condición \texttt{if(distanciasord[4, i] > umbral)} evalúa si la distancia al tercer vecino (posición 4 en la columna, contando la propia observación) excede ese límite.
+  \item Si se cumple, se imprime el número de la observación y el mensaje “es un outlier”.
+\end{itemize}
+
 El resultado muestra:
 
 \begin{verbatim}
@@ -469,8 +535,160 @@ En el espacio bidimensional de las calificaciones, los puntos \((4,4)\), \((4,3)
 En contraste, el punto \((1,1)\) está alejado del resto, a una distancia superior a cuatro unidades euclídeas.  
 Este aislamiento explica su clasificación como outlier mediante el criterio de proximidad.
 
-Analizándolo de forma geométrica, las observaciones se encuentran en la zona superior derecha del plano, mientras que el punto anómalo se sitúa en la esquina inferior izquierda.
+Analizándolo de forma geométrica, las observaciones se encuentran en la zona superior derecha del plano, mientras que el punto anómalo se sitúa en la esquina inferior izquierda.  
 Este método basado en la distancia euclídea ha permitido identificar eficazmente la observación que difiere significativamente del patrón general del conjunto de datos, en base a los criterios de proximidad establecidos.
+
+
+\subsubsection*{Implementación en R de LOF (Local Outlier Factor).}
+
+A continuación, se implementa el método LOF (Local Outlier Factor) mediante el paquete \texttt{Rlof}, que automatiza el cálculo de la densidad local y la comparación con las densidades de los vecinos próximos.  
+Este enfoque complementa el método K-NN al introducir el análisis de densidades relativas en lugar de distancias absolutas, permitiendo una evaluación más robusta de la rareza de cada observación en función de la \textbf{densidad local relativa}.
+
+\paragraph{1) Preparación del entorno y definición del conjunto de datos.}
+Se instala y carga el paquete \texttt{Rlof}, y se define la matriz de calificaciones con las dos variables \textbf{Teoría} y \textbf{Laboratorio} correspondientes a los cinco estudiantes.
+
+<<lof_datos, echo=TRUE, results=verbatim>>=
+# Instalación y carga del paquete Rlof
+# install.packages("Rlof")
+library(Rlof)
+
+# Definición de la matriz de datos (5 observaciones x 2 variables)
+muestra <- matrix(c(4,4,
+                    4,3,
+                    5,5,
+                    1,1,
+                    5,4), 
+                  byrow = TRUE, ncol = 2)
+
+# Asignación de nombres a filas y columnas
+colnames(muestra) <- c("Teoria", "Laboratorio")
+rownames(muestra) <- 1:5
+
+# Visualización de la matriz de datos
+print("Matriz de datos:")
+print(muestra)
+@
+
+En esta matriz, cada fila representa a un estudiante y cada columna una calificación.  
+La estructura bidimensional permite aplicar directamente el análisis de proximidad y densidad mediante las funciones del paquete.
+
+\paragraph{2) Cálculo del factor LOF con distancia de Manhattan.}
+Se elige el número de vecinos \( k = 3 \) para definir la vecindad local de cada observación.  
+La función principal utilizada, \texttt{lof()}, permite especificar la métrica de distancia mediante el argumento \texttt{method}.  
+En este caso se selecciona la \textbf{distancia Manhattan}, definida como:
+
+\[
+d_M(p, q) = \sum_{i=1}^{n} |p_i - q_i|
+\]
+
+Esta métrica resulta especialmente útil en variables cuantitativas de escala comparable, ya que mide la discrepancia entre observaciones como la suma de diferencias absolutas por dimensión.
+
+<<lof_calculo, echo=TRUE, results=verbatim>>=
+# Selección del parámetro k
+k <- 3
+
+# Cálculo del factor LOF utilizando distancia de Manhattan
+lof_scores <- Rlof::lof(muestra, k = k, method = "manhattan")
+
+# Visualización de los valores LOF (redondeados a 3 decimales)
+print(paste("Valores LOF para k =", k, "usando distancia Manhattan:"))
+print(round(lof_scores, 3))
+@
+
+El vector \texttt{lof\_scores} contiene un valor por observación.  
+Un valor cercano a 1 indica que la densidad local del punto es similar a la de sus vecinos; valores significativamente superiores a 1 implican una menor densidad local y, por tanto, una mayor probabilidad de anomalía.
+
+\paragraph{3) Identificación de observaciones anómalas.}
+Se establece un umbral de decisión \( LOF > 1.5 \).  
+Las observaciones cuyo valor LOF supera dicho umbral se clasifican como \textbf{datos anómalos}.
+
+<<lof_outliers, echo=TRUE, results=verbatim>>=
+# Umbral de decisión
+umbral <- 1.5
+
+# Identificación de observaciones anómalas
+outliers <- which(lof_scores > umbral)
+
+# Presentación de resultados
+if (length(outliers) == 0) {
+  cat("\nNo se detectaron outliers (LOF <", umbral, ")\n")
+} else {
+  cat("\nObservaciones detectadas como outliers (LOF >", umbral, "):\n")
+  print(outliers)
+  print("Coordenadas de los outliers:")
+  print(muestra[outliers, ])
+}
+@
+
+En este caso, la salida del programa muestra el índice de las observaciones detectadas como anómalas y sus coordenadas en el espacio bidimensional de calificaciones.
+
+\paragraph{4) Interpretación de resultados.}
+El análisis mediante el método LOF utilizando la distancia de Manhattan produce resultados coherentes con el método K-NN: el estudiante 4, con calificaciones \((1,1)\), presenta una densidad local marcadamente inferior respecto al resto del conjunto.  
+Esto confirma su condición de \textbf{dato anómalo}, ya que la suma de las diferencias absolutas respecto a los demás puntos supera ampliamente las observadas entre los restantes estudiantes.
+
+El uso del paquete \texttt{Rlof} y de la métrica de Manhattan aporta una perspectiva complementaria: en lugar de evaluar sólo la proximidad geométrica, el análisis considera la \textbf{densidad local relativa}, lo que permite identificar puntos aislados incluso en regiones de diferente dispersión.  
+Además, la posibilidad de ajustar la métrica de distancia y el número de vecinos convierte a este método en una herramienta flexible para la detección de anomalías en conjuntos de datos de distinta naturaleza.
+
+\paragraph{Descripción del paquete \texttt{Rlof}.}
+
+El paquete \texttt{Rlof} (\textit{R Parallel Implementation of Local Outlier Factor}) proporciona una implementación optimizada y paralelizada del algoritmo LOF propuesto.  
+Su principal objetivo es acelerar el cálculo del \textbf{factor de aislamiento local} mediante el uso de múltiples núcleos de CPU y estructuras de datos eficientes para la gestión de distancias.
+
+El paquete depende de los módulos \texttt{doParallel} y \texttt{foreach}, que permiten el procesamiento en paralelo de varios valores de \(k\) y la ejecución simultánea de cálculos de densidad local.  
+De esta forma, se incrementa significativamente el rendimiento en conjuntos de datos de gran tamaño.
+
+Entre sus características más relevantes destacan:
+
+\begin{itemize}
+  \item Soporte para múltiples medidas de distancia (\texttt{"euclidean"}, \texttt{"manhattan"}, \texttt{"canberra"}, \texttt{"binary"}, \texttt{"minkowski"}), especificadas mediante el argumento \texttt{method}.
+  \item Posibilidad de calcular varios valores de \(k\) en paralelo (\texttt{k} puede ser un vector).
+  \item Utilización automática de todos los núcleos disponibles si no se indica el parámetro \texttt{cores}.
+  \item Compatibilidad con matrices y \texttt{data.frame} como estructuras de entrada.
+\end{itemize}
+
+Internamente, el paquete implementa dos funciones principales:
+
+Internamente, el paquete implementa dos funciones principales:
+
+\begin{enumerate}
+  \item \textbf{\texttt{distmc()}}: calcula una matriz de distancias entre observaciones con soporte multihilo.  
+  Es funcionalmente equivalente a \texttt{dist()} del paquete base \texttt{stats}, pero permite paralelización y soporta un mayor número de métricas.  
+  Su sintaxis general es:
+  \[
+  \texttt{distmc(x, method = "euclidean", diag = FALSE, upper = FALSE, p = 2)}
+  \]
+  donde:
+  \begin{itemize}
+    \item \texttt{x}: matriz o \texttt{data.frame} numérico que contiene las observaciones en filas y las variables en columnas.
+    \item \texttt{method}: determina la métrica de distancia a utilizar; puede ser \texttt{"euclidean"}, \texttt{"manhattan"}, \texttt{"canberra"}, \texttt{"binary"} o \texttt{"minkowski"}.
+    \item \texttt{diag}: indica si la diagonal debe mostrarse en la matriz de salida (\texttt{FALSE} por defecto).
+    \item \texttt{upper}: controla si se devuelve la parte superior de la matriz (\texttt{FALSE} por defecto).
+    \item \texttt{p}: parámetro de la distancia de Minkowski (por defecto \( p = 2 \), que equivale a la distancia euclídea).
+  \end{itemize}
+  La función devuelve un objeto de tipo \texttt{dist}, que puede transformarse en una matriz mediante \texttt{as.matrix()} para su visualización o uso posterior.  
+  En este trabajo se especifica el argumento \texttt{method = "manhattan"} para utilizar la distancia de Manhattan, más robusta frente a variaciones grandes en una única variable.
+
+  \item \textbf{\texttt{lof()}}: calcula el \textbf{Local Outlier Factor} (LOF) para cada observación del conjunto de datos, comparando su densidad local con la de sus \(k\) vecinos más próximos.  
+  La llamada básica es:
+  \[
+  \texttt{lof(data, k, cores = NULL, method = "euclidean")}
+  \]
+  donde:
+  \begin{itemize}
+    \item \texttt{data}: conjunto de datos en formato matriz o \texttt{data.frame}.
+    \item \texttt{k}: número de vecinos más próximos considerados para el cálculo del LOF.
+    \item \texttt{cores}: número de núcleos de CPU utilizados para el cálculo en paralelo. Si se deja en \texttt{NULL}, se emplean todos los disponibles.
+    \item \texttt{method}: métrica de distancia usada para determinar los vecinos más cercanos, idéntica a la de \texttt{distmc()}.
+  \end{itemize}
+  La función devuelve un vector numérico del mismo tamaño que el número de observaciones, donde cada elemento representa el valor \( LOF_i \) asociado a la observación \( i \).  
+  Valores cercanos a 1 indican una densidad local similar a la de los vecinos (observación normal), mientras que valores significativamente mayores que 1 reflejan una menor densidad relativa, identificando la observación como potencial \textbf{outlier}.
+\end{enumerate}
+
+
+La combinación de ambas funciones permite aplicar el método LOF de forma flexible, eficiente y reproducible, con control explícito sobre la métrica de distancia y el número de vecinos.  
+En este proyecto, \texttt{Rlof} se emplea con la distancia de Manhattan y \(k = 3\), optimizando el cálculo de densidades locales y detectando automáticamente los puntos con menor densidad relativa en el espacio de calificaciones.
+
+\footnote{Basado en la documentación del paquete \texttt{Rlof} (versión 1.1.3), desarrollado por Yingsong Hu, Wayne Murray y Yin Shan. Publicado en CRAN el 16 de octubre de 2022.}
 
 \newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
