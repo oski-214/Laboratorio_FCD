@@ -202,8 +202,9 @@ print(cuartiles)
 El propósito de este ejercicio es identificar las relaciones y patrones de compra frecuentes entre distintos productos usando Apriori.
 
 \subsubsection{Instalación y Carga de Paquetes}
-El análisis de reglas de asociación en R se facilita mediante el paquete \texttt{arules}.  
-El primer paso fue intentar cargar dicho paquete. Al no estar instalado, se procedió con su instalación desde el repositorio CRAN.  
+Para realizar el análisis se utilizó el paquete \texttt{arules}, especializado en minería de reglas de asociación y análisis de conjuntos de transacciones.  
+Este paquete ofrece estructuras de datos eficientes para transacciones (clase \texttt{transactions}), algoritmos como \texttt{Apriori} y herramientas para medir soporte, confianza y lift de reglas de asociación.  
+El primer paso fue intentar cargar dicho paquete mediante \texttt{library(arules)}. Al no estar instalado, se procedió con su instalación desde el repositorio CRAN.  
 
 <<>>=
 # install.packages("arules")
@@ -216,10 +217,13 @@ Los datos de las cestas de la compra se representaron inicialmente como una matr
 Para poder utilizar el paquete arules, la matriz tuvo que ser convertida al formato \texttt{transactions}. Este proceso se realizó en varios pasos:
 
 \begin{enumerate}
-\item Convertir la matriz numérica a una matriz lógica ({ngCMatrix}).
-\item Transponer la matriz para que los items queden en las filas.
-\item Convertir la matriz transpuesta final al formato transactions.
+\item \textbf{Conversión a matriz lógica:} se utiliza la función \texttt{as(matriz, "nsparseMatrix")} para generar una matriz dispersa (\texttt{ngCMatrix}), eficiente en memoria cuando hay muchos ceros.
+\item \textbf{Transposición:} con \texttt{t()}, se invierte la matriz para que los items queden en filas y las transacciones en columnas, cumpliendo la convención del paquete.
+\item \textbf{Conversión a transacciones:} mediante \texttt{as(objeto, "transactions")}, se transforma la matriz lógica en un objeto compatible con \texttt{arules}, permitiendo aplicar algoritmos de asociación.
 \end{enumerate}
+
+El paquete \texttt{Matrix} se emplea para manejar matrices dispersas de forma eficiente, especialmente útil en datasets grandes donde la mayoría de los elementos son ceros.
+
 
 <<>>=
 library(Matrix)
@@ -258,13 +262,18 @@ summary(transacciones)
 
 \subsubsection{Aplicación del Algoritmo Apriori}
 Se aplicó el algoritmo apriori para extraer las reglas de asociación.  
-Se establecieron los siguientes umbrales.
-Tras la ejecución del algoritmo, se generaron 7 reglas de asociación.
 
 \begin{itemize}
-\item \textbf{Soporte mínimo (support)} = 0.5 → la combinación de artículos debe aparecer en al menos el 50\% de todas las transacciones (3 o más cestas).
-\item \textbf{Confianza mínima (confidence)} = 0.8 → la regla A ⇒ B debe cumplirse al menos el 80\% de las veces que aparece A.
+\item \texttt{apriori(x, parameter = list(support = , confidence = ))}: recibe como argumento el objeto \texttt{transactions} y una lista de parámetros.  
+    \begin{itemize}
+    \item \texttt{support}: soporte mínimo requerido, indicando la frecuencia relativa mínima para que una regla se considere.
+    \item \texttt{confidence}: confianza mínima de la regla, expresando la probabilidad condicional de que la presencia del antecedente implique la del consecuente.
+    \end{itemize}
+\item \texttt{inspect()}: muestra las reglas generadas en un formato legible, incluyendo soporte, confianza y lift.
 \end{itemize}
+
+Para este análisis, se estableció un soporte mínimo de 0.5 y una confianza mínima de 0.8, generando 7 reglas de asociación.
+
 
 <<>>=
 asociaciones <- apriori(transacciones,
@@ -2019,12 +2028,14 @@ And also, do not incorporate prunning to the code.]
 
 
 \newpage
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Ejercicio 2.3: Detección de Datos Anómalos}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 En este ejercicio se implementaron tres métodos distintos para la detección de datos anómalos, utilizando técnicas estadísticas básicas.  
 Se trabajó con dos variables: \texttt{Velocidad} y \texttt{Temperatura}.  
+El conjunto de datos empleado fue el siguiente:
 
 <<setup, echo=TRUE, message=FALSE>>=
 # Creación del conjunto de datos
@@ -2032,30 +2043,73 @@ datos <- data.frame(
   Velocidad = c(10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5),
   Temperatura = c(7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73)
 )
+@
 
-# Funciones auxiliares del ejercicio 2.1
+\subsubsection{Funciones auxiliares comunes}
+
+Antes de proceder con los métodos de detección, se implementaron varias funciones auxiliares necesarias para reemplazar operaciones básicas. 
+La función \texttt{contar\_elementos(x)} permite obtener la cantidad de elementos de un vector mediante un bucle \texttt{for}, 
+acumulando una unidad por cada iteración. Su salida es un valor numérico entero que representa el número de observaciones contenidas en el vector.
+Por otro lado, la función \texttt{mi\_suma(x)} se encarga de calcular la suma total de los elementos de un vector numérico. 
+El procedimiento consiste en inicializar un acumulador en cero e ir sumando cada valor del vector en un bucle.
+A partir de ambas funciones se define \texttt{media\_manual(x)}, que calcula la media aritmética dividiendo la suma total obtenida por \texttt{mi\_suma(x)} 
+entre el número de elementos devuelto por \texttt{contar\_elementos(x)}. Esta función devuelve la media muestral de los valores contenidos en el vector.
+Para calcular la varianza y la desviación típica, se implementaron las funciones \texttt{varianza\_manual(x)} y \texttt{desviacion\_manual(x)}. 
+La primera recorre todos los valores del vector y acumula la suma de los cuadrados de las desviaciones respecto a la media, dividiendo después 
+el resultado por el número total de elementos. La segunda función simplemente aplica la raíz cuadrada a la varianza calculada para obtener la
+desviación típica.
+
+<<funciones_auxiliares, echo=TRUE, results=verbatim>>=
+# ==========================================================
+# FUNCIONES AUXILIARES BÁSICAS
+# ==========================================================
+
+# Contar elementos manualmente
 contar_elementos <- function(x) {
   n <- 0
   for (._ in x) n <- n + 1
   n
 }
 
+# Suma manual
+mi_suma <- function(x) {
+  total <- 0
+  for (valor in x) total <- total + valor
+  total
+}
+
+# Media manual
 media_manual <- function(x) {
-  suma <- 0
+  suma <- mi_suma(x)
   n <- contar_elementos(x)
-  for (v in x) suma <- suma + v
   suma / n
+}
+
+# Varianza manual
+varianza_manual <- function(x) {
+  n <- contar_elementos(x)
+  media <- media_manual(x)
+  suma <- 0
+  for (v in x) suma <- suma + (v - media)^2
+  suma / n
+}
+
+# Desviación típica manual
+desviacion_manual <- function(x) {
+  sqrt(varianza_manual(x))
 }
 @
 
 \subsubsection{Medidas de ordenación (Velocidad), Método Caja y Bigotes}
 
-En esta parte del trabajo se buscó identificar posibles valores atípicos en la variable \texttt{Velocidad}.  
-Se calcularon los cinco números resumen (mínimo, Q1, mediana, Q3 y máximo) mediante la función \texttt{fivenum()}.  
-Posteriormente, se aplicó la regla del rango intercuartílico (IQR) para detectar outliers, considerando un dato como atípico si cumple:
-\[
-x < Q_1 - 1.5 \times IQR \quad \text{o} \quad x > Q_3 + 1.5 \times IQR
-\]. Finalmente, se iteró manualmente sobre todos los valores de Velocidad, comparando cada uno con estos límites para identificar y reportar aquellos que quedaban fuera del intervalo.
+El primer método utilizado para la detección de valores atípicos se basa en el rango intercuartílico (IQR). Este enfoque utiliza medidas de posición,
+calculando los cuartiles primero (\(Q_1\) y \(Q_3\)) y el rango intercuartílico como la diferencia \(IQR = Q_3 - Q_1\). Un dato se considera atípico si está por debajo
+del límite inferior \(Q_1 - 1.5 \cdot IQR\) o por encima del límite superior \(Q_3 + 1.5 \cdot IQR\). En la implementación, se aprovechó la función \texttt{fivenum(x)},
+para obtener los cinco números resumen. A partir de ellos, se calcularon los límites inferior y superior del rango aceptable. Posteriormente, mediante un 
+bucle \texttt{for}, se recorrió cada elemento del vector y se comparó con los límites obtenidos. Cuando un valor excedía dichos límites, se imprimía por pantalla el 
+índice y el valor detectado como atípico. Esta lógica se encapsuló en la función \texttt{detectar\_outliers\_iqr(x)}. Dicha función recibe un vector numérico como argumento
+y no devuelve ningún valor formal, sino que imprime en la consola los resultados. En los datos analizados, no se detectaron valores atípicos en la variable \texttt{Velocidad}, 
+puesto que todas las observaciones quedaron dentro del intervalo definido por los límites del IQR.
 
 \subsubsection*{Prompt de IA Utilizado}
 
@@ -2068,26 +2122,29 @@ sort the data, calculate the first and third quartiles, compute the interquartil
 
 
 <<ordenacion_velocidad, echo=TRUE, results=verbatim>>=
-# Resumen de cinco números para Velocidad
-resumen_vel <- fivenum(datos$Velocidad)
-names(resumen_vel) <- c("Mínimo", "Q1", "Mediana", "Q3", "Máximo")
-print(resumen_vel)
-
-# Cálculo del IQR y límites
-IQRv <- resumen_vel["Q3"] - resumen_vel["Q1"]
-lim_inf_v <- resumen_vel["Q1"] - 1.5 * IQRv
-lim_sup_v <- resumen_vel["Q3"] + 1.5 * IQRv
-
-cat("\n--- OUTLIERS en VELOCIDAD ---\n")
-i <- 1
-for (v in datos$Velocidad) {
-  if (v < lim_inf_v || v > lim_sup_v) {
-    cat("Índice:", i, "→ Velocidad =", v, "es un outlier\n")
+# Método IQR manual
+detectar_outliers_iqr <- function(x) {
+  resumen <- fivenum(x)
+  Q1 <- resumen[2]
+  Q3 <- resumen[4]
+  IQRv <- Q3 - Q1
+  lim_inf <- Q1 - 1.5 * IQRv
+  lim_sup <- Q3 + 1.5 * IQRv
+  
+  cat("\n--- DETECCIÓN OUTLIERS IQR ---\n")
+  cat("Límite inferior:", lim_inf, "\n")
+  cat("Límite superior:", lim_sup, "\n")
+  
+  i <- 1
+  hay_outliers <- FALSE
+  for (v in x) {
+    if (v < lim_inf || v > lim_sup) {
+      cat("Índice:", i, "→ Valor =", v, "es un outlier\n")
+      hay_outliers <- TRUE
+    }
+    i <- i + 1
   }
-  i <- i + 1
-}
-if (all(datos$Velocidad >= lim_inf_v & datos$Velocidad <= lim_sup_v)) {
-  cat("No se detectaron outliers en velocidad.\n")
+  if (!hay_outliers) cat("No se detectaron outliers.\n")
 }
 @
 
@@ -2095,46 +2152,51 @@ if (all(datos$Velocidad >= lim_inf_v & datos$Velocidad <= lim_sup_v)) {
 
 \subsubsection{Medidas de dispersión (Temperatura), Método Desviación Típica}
 
-Se aplicó el método de la desviación típica para detectar valores atípicos en la variable \texttt{Temperatura}.  
-Asumiendo distribución normal, se calculó la media y varianza de forma manual, y se definieron los límites inferior y superior como:
-\[
-L_i = \bar{x} - 2\sigma \quad ; \quad L_s = \bar{x} + 2\sigma
-\]
-Los valores fuera de este intervalo se consideraron atípicos.
+El segundo método asume una distribución aproximadamente normal de los datos y detecta valores anómalos comparando cada observación con la media y la desviación típica.
+Un valor se considera atípico si se encuentra fuera del intervalo \([\bar{x} - d \cdot s, \bar{x} + d \cdot s]\), donde \(s\) es la desviación típica y \(d\) es un multiplicador 
+elegido (en este caso \(d=2\)). 
+Para implementarlo, se calculó la media y la desviación típica mediante las funciones \texttt{media\_manual(x)} y \texttt{desviacion\_manual(x)} previamente definidas.
+Luego, se obtuvieron los límites inferior y superior, y se recorrió el vector de \texttt{Temperatura} en un bucle, imprimiendo por pantalla los valores que se situaban
+fuera del rango aceptado. La función desarrollada para ello, \texttt{detectar\_outliers\_sd(x, d)}, acepta como argumentos el vector de datos y el multiplicador de 
+desviación. La salida consiste en un mensaje por consola indicando si se han encontrado o no observaciones anómalas.
+En la práctica, al aplicar esta función sobre la variable \texttt{Temperatura}, se detectó un único valor atípico correspondiente a la observación con valor 12.74, 
+ya que sobrepasaba claramente el límite superior establecido por el criterio de dos desviaciones típicas respecto a la media.
+
 
 \subsubsection*{Prompt de IA Utilizado}
 \begin{quote}
 [Now you have to do the same as before but with different data and another method. Analyze the following Temperature dataset: 
 {7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73}. I want you to identify outliers using the standard deviation method. 
 It is important to follow this procedure: calculate the arithmetic mean of all values; compute the standard deviation; then apply the 
-outlier detection rule using the formulas: lower limit = mean(x) − d × standard deviation, and upper limit = mean(x) + d × standard deviation. 
+outlier detection rule using the formulas: lower limit = mean(x) - d × standard deviation, and upper limit = mean(x) + d × standard deviation. 
 The code must check the data and indicate which values are outliers because they do not meet this condition. You are not allowed to use: lm, summary, 
 or length.]
 \end{quote}
 
 <<dispersión_temperatura, echo=TRUE, results=verbatim>>=
-n <- contar_elementos(datos$Temperatura)
-media_temp <- media_manual(datos$Temperatura)
-
-# Varianza y desviación típica manuales
-var_temp <- 0
-for (t in datos$Temperatura) {
-  var_temp <- var_temp + (t - media_temp)^2
-}
-var_temp <- var_temp / n
-desv_temp <- sqrt(var_temp)
-
-# Límites de outliers
-lim_inf_t <- media_temp - 2 * desv_temp
-lim_sup_t <- media_temp + 2 * desv_temp
-
-cat("\n--- OUTLIERS en TEMPERATURA ---\n")
-i <- 1
-for (t in datos$Temperatura) {
-  if (t < lim_inf_t || t > lim_sup_t) {
-    cat("Índice:", i, "→ Temperatura =", t, "es un outlier\n")
+# Método de la desviación típica manual
+detectar_outliers_sd <- function(x, d = 2) {
+  media <- media_manual(x)
+  desv <- desviacion_manual(x)
+  lim_inf <- media - d * desv
+  lim_sup <- media + d * desv
+  
+  cat("\n--- DETECCIÓN OUTLIERS DESVIACIÓN TÍPICA ---\n")
+  cat("Media:", media, "\n")
+  cat("Desviación típica:", desv, "\n")
+  cat("Límite inferior:", lim_inf, "\n")
+  cat("Límite superior:", lim_sup, "\n")
+  
+  i <- 1
+  hay_outliers <- FALSE
+  for (valor in x) {
+    if (valor < lim_inf || valor > lim_sup) {
+      cat("Índice:", i, "→ Valor =", valor, "es un outlier\n")
+      hay_outliers <- TRUE
+    }
+    i <- i + 1
   }
-  i <- i + 1
+  if (!hay_outliers) cat("No se detectaron outliers.\n")
 }
 @
 
@@ -2142,57 +2204,83 @@ for (t in datos$Temperatura) {
 
 Finalmente, se utilizó un enfoque basado en regresión lineal entre \texttt{Velocidad} (variable independiente) y \texttt{Temperatura} (variable dependiente).  
 Se calcularon las medias de Velocidad y Temperatura con las funciones del ejercicio 2.1. Después, se calcularon los coeficientes de la recta de regresión. Los cálculos se hicieron manualmente iterando sobre los datos, sin usar funciones R predefinidas como lm(). 
-Una vez obtenida la recta, se calcularon los residuos. Para cada, se calculó la temperatura estimada y el residuo. Luego, se calculó la desviación típica de los residuos. Y se estableció el criterio de anomalía: un punto se considera un outlier si su residuo absoluto es mayor que dos veces el error estándar de los residuos. Por último, se iteró sobre los residuos para identificar los puntos que cumplían esta condición.
+Una vez obtenida la recta, se calcularon los residuos. Para cada, se calculó la temperatura estimada y el residuo. Luego, se calculó la desviación típica de los residuos. Y se estableció el criterio de anomalía: un punto se considera un outlier si su residuo absoluto es mayor que dos veces el error estándar de los residuos. 
+Por último, se iteró sobre los residuos para identificar los puntos que cumplían esta condición.
+La función implementada para este método, \texttt{detectar\_outliers\_regresion(x, y, d)}, recibe los vectores de la variable independiente y dependiente, así como el parámetro multiplicador \(d\). Internamente, la función calcula las medias y las sumas necesarias mediante bucles, obtiene la pendiente y la ordenada en el origen, 
+y recorre las observaciones comparando cada residuo con el umbral \(d \cdot s_r\). Si algún residuo supera dicho valor absoluto, se imprime su índice junto al valor correspondiente. 
+En este conjunto de datos, la ecuación de regresión obtenida fue \(\hat{y} = 3.0025 + 0.4997 \cdot x\) y el error estándar de los residuos fue \(s_r = 1.1183\). Al aplicar el criterio de outlier (\(|r_i| > 2 \cdot s_r\)), se detectó un valor atípico correspondiente al índice 3, con residuo \(r_3 = 3.2411\),
+el cual excede el umbral de \(2 \cdot s_r\). Por tanto, este punto se considera un outlier según el análisis por residuos de regresión.
+
 
 \subsubsection*{Prompt de IA Utilizado}
 
 \begin{quote}
 [Final exercise. We take the 11 pairs of data {Speed, Temperature}: {10, 7.46; 8, 6.77; 13, 12.74; 9, 7.11; 11, 7.81; 14, 8.84; 6, 6.08; 4, 5.39; 12, 8.15; 7, 6.42; 5, 5.73}. Perform an outlier analysis based on regression residuals, where Speed is the independent variable and Temperature is the dependent variable.
-Please follow these steps manually, without using functions such as lm or summary: first, calculate the mean of Speed and Temperature; then obtain the linear regression coefficients a and b (b = Sxy / Sx²). For each of the 11 points, compute its residual and the standard deviation of the residuals. Finally, the code must indicate which points are outliers according to the condition |yi − ŷi| > d × sr”]
+Please follow these steps manually, without using functions such as lm or summary: first, calculate the mean of Speed and Temperature; then obtain the linear regression coefficients a and b (b = Sxy / Sx²). For each of the 11 points, compute its residual and the standard deviation of the residuals. Finally, the code must indicate which points are outliers according to the condition |yi - ŷi| > d × sr”]
 \end{quote}
 
-
-
 <<regresion_outliers, echo=TRUE, results=verbatim>>=
-x <- datos$Velocidad
-y <- datos$Temperatura
-media_x <- media_manual(x)
-media_y <- media_manual(y)
-
-# Cálculo manual de la pendiente y el intercepto
-num <- 0
-den <- 0
-for (i in seq(contar_elementos(x))) {
-  num <- num + (x[i] - media_x) * (y[i] - media_y)
-  den <- den + (x[i] - media_x)^2
-}
-b1 <- num / den
-b0 <- media_y - b1 * media_x
-
-cat("\nEcuación de regresión manual:\n")
-cat("Temperatura = ", round(b0, 4), " + ", round(b1, 4), " * Velocidad\n")
-
-# Residuos y error estándar
-residuos <- numeric(n)
-for (i in seq(n)) {
-  y_est <- b0 + b1 * x[i]
-  residuos[i] <- y[i] - y_est
-}
-
-suma_res <- 0
-for (r in residuos) suma_res <- suma_res + r^2
-error_est <- sqrt(suma_res / n)
-cat("\nError estándar de los residuos:", round(error_est, 4), "\n")
-
-cat("\n--- OUTLIERS en REGRESIÓN ---\n")
-i <- 1
-for (r in residuos) {
-  if (abs(r) > 2 * error_est) {
-    cat("Índice:", i, "→ Residuo =", round(r, 4), "es un outlier\n")
+# Método de regresión manual con detección por residuos
+detectar_outliers_regresion <- function(x, y, d = 2) {
+  n <- contar_elementos(x)
+  media_x <- media_manual(x)
+  media_y <- media_manual(y)
+  
+  # Calcular pendiente y ordenada al origen
+  num <- 0
+  den <- 0
+  for (i in seq(n)) {
+    num <- num + (x[i] - media_x) * (y[i] - media_y)
+    den <- den + (x[i] - media_x)^2
   }
-  i <- i + 1
+  b1 <- num / den
+  b0 <- media_y - b1 * media_x
+  
+  # Calcular residuos
+  residuos <- numeric(n)
+  for (i in seq(n)) {
+    y_est <- b0 + b1 * x[i]
+    residuos[i] <- y[i] - y_est
+  }
+  
+  # Calcular error estándar de residuos
+  suma_res <- 0
+  for (r in residuos) suma_res <- suma_res + r^2
+  error_est <- sqrt(suma_res / n)
+  
+  cat("\n--- DETECCIÓN OUTLIERS REGRESIÓN ---\n")
+  cat("Ecuación: y =", round(b0, 4), "+", round(b1, 4), "* x\n")
+  cat("Error estándar de residuos:", round(error_est, 4), "\n")
+  
+  i <- 1
+  hay_outliers <- FALSE
+  for (r in residuos) {
+    if (abs(r) > d * error_est) {
+      cat("Índice:", i, "→ Residuo =", round(r, 4), "es un outlier\n")
+      hay_outliers <- TRUE
+    }
+    i <- i + 1
+  }
+  if (!hay_outliers) cat("No se detectaron outliers en los residuos.\n")
 }
+
 @
+
+\subsubsection{Aplicación de los métodos}
+
+Finalmente, se aplicaron las funciones previamente definidas sobre el conjunto de datos \texttt{datos}. 
+Cada función analiza la variable correspondiente y reporta los valores detectados como outliers. El código ejecutable es el siguiente:
+
+<<aplicacion_metodos, echo=TRUE, results=verbatim>>=
+# ==========================================================
+# APLICACIÓN DE LOS MÉTODOS
+# ==========================================================
+
+detectar_outliers_iqr(datos$Velocidad)
+detectar_outliers_sd(datos$Temperatura)
+detectar_outliers_regresion(datos$Velocidad, datos$Temperatura)
+@
+
 
 \newpage
 
