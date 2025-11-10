@@ -68,98 +68,129 @@ A continuación, se detallan los ejercicios resueltos.
 \subsection{Ejercicio 1.1: Análisis Descriptivo (Satélites de Urano)}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-En este primer ejercicio se realiza un análisis descriptivo básico utilizando las funciones estándar que proporciona R. El objetivo es familiarizarse con la carga de datos, la ordenación y el cálculo de medidas de centralización, posición y dispersión.
+Este primer ejercicio consiste en un análisis descriptivo guiado. Su propósito principal es asentar las bases del manejo de datos en R, utilizando las funciones estadísticas estándar que ofrece el lenguaje para caracterizar un conjunto de datos unidimensional.
 
-\subsubsection{Descripción del conjunto de datos}
-Se utiliza un conjunto de datos con información sobre los satélites menores de Urano (aquellos con radio menor a 50 km). Los datos constan de dos variables:
+\subsubsection{1. Descripción del conjunto de datos}
+Los datos objeto de estudio corresponden a características físicas de los satélites menores del planeta Urano (aquellos con un radio inferior a 50 km). El conjunto de datos contiene 12 observaciones y dos variables:
 \begin{itemize}
-    \item \textbf{Nombre:} variable cualitativa nominal que identifica al satélite (ej. Cordelia, Ofelia).
-    \item \textbf{radio:} variable cuantitativa continua que representa el radio del satélite en kilómetros.
+    \item \textbf{Nombre:} Variable cualitativa nominal que identifica a cada satélite (ej. \textit{Cordelia}, \textit{Ofelia}).
+    \item \textbf{radio:} Variable cuantitativa continua que representa el radio medio del satélite en kilómetros.
 \end{itemize}
-Los datos se cargan desde el fichero externo \texttt{satelites.txt}.
+La información se encuentra almacenada en un fichero de texto plano denominado \texttt{satelites.txt}, estructurado en formato tabular con cabecera.
 
-\subsubsection{Funciones de R utilizadas}
-Para cumplir con los objetivos del análisis, se han empleado las siguientes funciones base de R. Es fundamental comprender sus argumentos y valores de retorno:
+\subsubsection{2. Funciones de R utilizadas}
+Para realizar este análisis descriptivo se emplean funciones base de R. De acuerdo con los criterios de evaluación, a continuación se detalla su funcionalidad y los argumentos clave empleados:
 
 \begin{itemize}
-    \item \texttt{read.table(file, header = TRUE)}: Lee un archivo en formato tabular y crea un \textit{data frame}. El argumento \texttt{header = TRUE} indica que la primera línea del archivo contiene los nombres de las variables.
-    \item \texttt{order(x)}: Devuelve un vector de índices permutados que ordenarían el vector \texttt{x} de forma ascendente. Es esencial para reordenar \textit{data frames} completos en función de una columna.
-    \item \texttt{rev(x)}: Invierte el orden de los elementos de un vector. Combinado con \texttt{order}, permite realizar ordenaciones descendentes.
-    \item \texttt{table(x)}: Genera una tabla de frecuencias absolutas, contando las ocurrencias de cada valor único en el vector \texttt{x}.
-    \item \texttt{cumsum(x)}: Calcula la suma acumulada de los elementos de un vector. Se aplica sobre las frecuencias absolutas o relativas para obtener sus versiones acumuladas.
-    \item \texttt{mean(x)} y \texttt{median(x)}: Calculan, respectivamente, la media aritmética y la mediana (el valor central de la distribución).
-    \item \texttt{var(x)} y \texttt{sd(x)}: Calculan la varianza y la desviación típica. Es importante notar que R calcula por defecto las versiones \textbf{muestrales} (dividiendo por $n-1$) y no las poblacionales.
-    \item \texttt{quantile(x, probs)}: Calcula los cuantiles de la distribución correspondientes a las probabilidades indicadas en el argumento \texttt{probs}. Por ejemplo, \texttt{probs = 0.25} devuelve el primer cuartil ($Q_1$).
-    \item \texttt{max(x)} y \texttt{min(x)}: Devuelven los valores máximo y mínimo del vector, utilizados para calcular el rango.
+    \item \textbf{\texttt{read.table(file, header = ...)}}: Función fundamental para la importación de datos tabulares desde ficheros de texto.
+    \begin{itemize}
+        \item \texttt{file}: Ruta al archivo que contiene los datos (\texttt{"satelites.txt"}).
+        \item \texttt{header = TRUE}: Argumento crítico que indica a R que la primera línea del fichero no contiene datos, sino los nombres de las variables (\textit{nombre}, \textit{radio}).
+    \end{itemize}
+    
+    \item \textbf{\texttt{order(x)}} y \textbf{\texttt{rev(x)}}: Herramientas para la ordenación.
+    \begin{itemize}
+        \item \texttt{order(x)} devuelve los \textit{índices} que ordenarían el vector \texttt{x} de forma ascendente. No ordena el vector en sí, sino que nos dice "qué posición va primero".
+        \item \texttt{rev(x)} invierte el orden de cualquier objeto. Combinado con \texttt{order}, permite obtener ordenaciones descendentes de forma sencilla.
+    \end{itemize}
+    
+    \item \textbf{\texttt{table(x)}}: Genera una tabla de contingencia con las frecuencias absolutas de cada valor único presente en el vector \texttt{x}. Es el primer paso para construir tablas de frecuencias completas.
+    
+    \item \textbf{\texttt{cumsum(x)}}: Calcula la suma acumulada de los elementos de un vector numérico. Se aplica sobre las frecuencias absolutas o relativas para obtener sus correspondientes versiones acumuladas ($N_i$, $F_i$).
+    
+    \item \textbf{\texttt{mean(x)}} y \textbf{\texttt{median(x)}}: Calculan las principales medidas de tendencia central: la media aritmética y la mediana (el valor que ocupa la posición central cuando los datos están ordenados), respectivamente.
+    
+    \item \textbf{\texttt{var(x)}} y \textbf{\texttt{sd(x)}}: Calculan la varianza y la desviación típica.
+    \textbf{Nota importante:} Por defecto, R calcula los estimadores \textit{muestrales} (insesgados), es decir, utilizan $n-1$ en el denominador en lugar de $N$.
+    \[ s^2 = \frac{\sum (x_i - \bar{x})^2}{n-1} \]
+    
+    \item \textbf{\texttt{quantile(x, probs)}}: Función versátil para calcular cualquier cuantil. El argumento \texttt{probs} acepta un vector con las probabilidades deseadas (ej. \texttt{c(0.25, 0.50, 0.75)} para obtener los tres cuartiles principales $Q_1, Q_2, Q_3$).
+    
+    \item \textbf{\texttt{max(x)}} y \textbf{\texttt{min(x)}}: Devuelven los valores extremos del vector, esenciales para determinar el rango o recorrido de la variable.
 \end{itemize}
 
-\subsubsection{Implementación en R}
+\subsubsection{3. Implementación del Análisis en R}
+A continuación se presenta el código completo y comentado que ejecuta el análisis descriptivo sobre la variable \textit{radio}.
 
-A continuación se muestra el código utilizado para realizar el análisis completo, desde la carga de datos hasta la generación de tablas de frecuencias y el cálculo de estadísticos.
+<<ejercicio1_1_analisis_completo, echo=TRUE, results=verbatim>>=
+# ==============================================================================
+# EJERCICIO 1.1: ANÁLISIS DESCRIPTIVO (Satélites de Urano)
+# ==============================================================================
 
-<<ejercicio1_1_analisis, echo=TRUE, results=verbatim>>=
-# 1. Carga de datos
-# Se lee el fichero 'satelites.txt' asumiendo que está en el directorio de trabajo
+# --- 1. Carga y verificación de datos ---
+# Leemos el fichero asumiendo que está en el directorio de trabajo actual.
 s <- read.table("satelites.txt", header = TRUE)
+
 print("Conjunto de datos original:")
 print(s)
 
-# 2. Ordenación de los datos
-# Ordenación ascendente por la variable 'radio'
-so_asc <- s[order(s$radio), ]
-print("Datos ordenados ascendentemente por radio:")
+# --- 2. Ordenación de los datos ---
+# Es útil observar los datos ordenados para identificar rápidamente los extremos.
+# Orden ascendente por radio:
+idx_asc <- order(s$radio)
+so_asc <- s[idx_asc, ]
+
+# Orden descendente por radio (invirtiendo el orden ascendente):
+idx_desc <- rev(idx_asc)
+so_desc <- s[idx_desc, ]
+
+cat("\n--- Datos ordenados por radio (ascendente) ---\n")
 print(so_asc)
 
-# Ordenación descendente utilizando rev() sobre el orden
-so_desc <- s[rev(order(s$radio)), ]
-print("Datos ordenados descendentemente por radio:")
-print(so_desc)
+# --- 3. Medidas de Dispersión Básicas (Rango) ---
+# El rango cuantifica la amplitud total de los datos.
+min_radio <- min(s$radio)
+max_radio <- max(s$radio)
+rango_val <- max_radio - min_radio
 
-# 3. Medidas de Dispersión Básicas (Rango)
-# El rango es la diferencia entre el valor máximo y el mínimo
-rango_val <- max(s$radio) - min(s$radio)
-cat("\nRango del radio (max - min):", rango_val, "km\n")
+cat("\nRango del radio:", min_radio, "-", max_radio, 
+    "(Amplitud:", rango_val, "km)\n")
 
-# 4. Tabla de Frecuencias del Radio
+# --- 4. Construcción de la Tabla de Frecuencias ---
 # Frecuencia Absoluta (ni)
 frec_abs <- table(s$radio)
+
 # Frecuencia Absoluta Acumulada (Ni)
 frec_abs_acum <- cumsum(frec_abs)
-# Frecuencia Relativa (fi): ni / N
-frec_rel <- frec_abs / length(s$radio)
+
+# Frecuencia Relativa (fi): ni / N total
+n_total <- length(s$radio)
+frec_rel <- frec_abs / n_total
+
 # Frecuencia Relativa Acumulada (Fi)
 frec_rel_acum <- cumsum(frec_rel)
 
-# Se combinan en un data frame para una mejor visualización
-tabla_frec <- data.frame(
+# Combinamos todo en un data frame para una visualización clara y compacta
+tabla_frecuencias <- data.frame(
   Radio = names(frec_abs),
   ni = as.integer(frec_abs),
   Ni = as.integer(frec_abs_acum),
-  fi = round(as.numeric(frec_rel), 3),
+  fi = round(as.numeric(frec_rel), 3),       # Redondeo a 3 decimales
   Fi = round(as.numeric(frec_rel_acum), 3)
 )
-print("Tabla de Frecuencias (Radio):")
-print(tabla_frec)
 
-# 5. Medidas de Posición Central
+cat("\n--- Tabla de Frecuencias Completa (Radio) ---\n")
+print(tabla_frecuencias)
+
+# --- 5. Medidas de Tendencia Central ---
 media_r <- mean(s$radio)
 mediana_r <- median(s$radio)
 
 cat("\n--- Medidas de Tendencia Central ---\n")
-cat("Media aritmética:", media_r, "km\n")
+cat("Media aritmética:", round(media_r, 2), "km\n")
 cat("Mediana:", mediana_r, "km\n")
 
-# 6. Medidas de Dispersión y Posición No Central
-# Varianza y Desviación Típica muestrales (n-1)
+# --- 6. Medidas de Dispersión y Posición ---
+# Recordamos que var() y sd() en R calculan versiones muestrales (n-1)
 var_r <- var(s$radio)
 sd_r <- sd(s$radio)
 
-# Cuartiles: se solicitan el 25% (Q1), 50% (Q2/Mediana) y 75% (Q3)
+# Calculamos los cuartiles principales (25%, 50%, 75%)
 cuartiles <- quantile(s$radio, probs = c(0.25, 0.50, 0.75))
 
-cat("\n--- Medidas de Dispersión y Cuartiles ---\n")
-cat("Varianza (muestral):", var_r, "\n")
-cat("Desviación Típica (muestral):", sd_r, "km\n")
+cat("\n--- Medidas de Dispersión y Posición ---\n")
+cat("Varianza (muestral):", round(var_r, 2), "\n")
+cat("Desviación Típica (muestral):", round(sd_r, 2), "km\n")
 cat("Cuartiles (Q1, Q2, Q3):\n")
 print(cuartiles)
 @
@@ -2165,11 +2196,306 @@ for (r in residuos) {
 
 \newpage
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ejercicio 2.4: Detección de datos anómalos (Proximidad y Densidad Manual)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+En este ejercicio se aborda la detección de datos anómalos utilizando dos enfoques diferentes: proximidad (K-NN) y densidad (LOF). Para cumplir con el requisito de trabajo autónomo y profundizar en los fundamentos teóricos, ambos algoritmos se implementarán de forma \textbf{manual}, sin recurrir a paquetes específicos de R para la detección de \textit{outliers}.
 
+\subsubsection{1. Descripción del conjunto de datos}
+El conjunto de datos objeto de estudio contiene información sobre la asistencia a cinco seminarios de biología. Consta de $N=5$ observaciones y dos variables cuantitativas discretas:
+\begin{itemize}
+    \item \textbf{Mujeres:} Número de mujeres asistentes al seminario.
+    \item \textbf{Hombres:} Número de hombres asistentes al seminario.
+\end{itemize}
+Los datos se encuentran almacenados en el fichero de texto plano \texttt{seminarios.txt}.
 
+\subsubsection{2. Funciones de R utilizadas en la exploración inicial}
+Para la carga y visualización preliminar de los datos se han utilizado las siguientes funciones base de R. Se detallan sus argumentos clave para justificar su uso en la creación de gráficos informativos:
 
+\begin{itemize}
+    \item \texttt{read.table(file, header = TRUE)}: Carga los datos desde un fichero de texto. El argumento \texttt{header = TRUE} indica a R que interprete la primera fila como los nombres de las variables ("Mujeres", "Hombres").
+    \item \texttt{plot(x, y, ...)}: Función genérica para crear gráficos. En este caso, genera un diagrama de dispersión. Se han personalizado sus argumentos para mejorar la interpretabilidad:
+    \begin{itemize}
+        \item \texttt{main}, \texttt{xlab}, \texttt{ylab}: Definen el título principal y las etiquetas de los ejes X e Y.
+        \item \texttt{pch = 19}: Selecciona el tipo de símbolo para los puntos (círculo sólido), más visible que el valor por defecto.
+        \item \texttt{col}: Define el color de los puntos.
+        \item \texttt{xlim}, \texttt{ylim}: Fuerzan los límites de los ejes (de 0 a 12) para asegurar que el origen (0,0) y todos los puntos sean visibles con perspectiva correcta.
+        \item \texttt{las = 1}: Fuerza a que las etiquetas numéricas de los ejes se muestren siempre horizontales, facilitando la lectura.
+    \end{itemize}
+    \item \texttt{grid()}: Añade una rejilla rectangular al gráfico existente, lo que ayuda a estimar visualmente las coordenadas de los puntos.
+    \item \texttt{text(x, y, labels, ...)}: Añade texto al gráfico en las coordenadas especificadas. Se utiliza para etiquetar cada punto con su identificador (P1, P2, etc.).
+    \begin{itemize}
+        \item \texttt{labels}: El texto a mostrar.
+        \item \texttt{pos = 3}: Coloca el texto justo \textbf{encima} de la coordenada especificada, evitando que se superponga con el punto.
+        \item \texttt{cex}: Ajusta el tamaño relativo del texto.
+    \end{itemize}
+    \item \texttt{paste(...)}: Concatena cadenas de texto. Se usa dentro de \texttt{text()} para crear las etiquetas dinámicamente (ej. combinando la letra "P" con el número de fila).
+    \item \texttt{rownames(x)}: Devuelve los nombres (o números) de las filas de un data frame, utilizado aquí para identificar cada observación secuencialmente.
+\end{itemize}
 
+\subsubsection{3. Carga y Exploración Visual}
+A continuación se muestra el código para cargar los datos y generar la visualización inicial.
+
+<<ejercicio2_4_carga_datos, echo=TRUE, fig=TRUE, width=6, height=6, align='center'>>=
+# --- 1. Carga de datos ---
+s_bio <- read.table("seminarios.txt", header = TRUE)
+
+print("Conjunto de datos original (Asistencia a Seminarios):")
+print(s_bio)
+
+# --- 2. Exploración Visual ---
+# Gráfico de dispersión ajustado para visualizar posibles outliers
+plot(s_bio$Mujeres, s_bio$Hombres,
+     main = "Diagrama de Dispersión: Asistencia",
+     xlab = "Número de Mujeres", ylab = "Número de Hombres",
+     pch = 19, col = "blue",       # Puntos sólidos azules
+     xlim = c(0, 12), ylim = c(0, 12), # Ejes fijos para ver el contexto global
+     las = 1)                      # Etiquetas horizontales
+
+# Añadir rejilla y etiquetas a los puntos
+grid()
+text(s_bio$Mujeres, s_bio$Hombres,
+     labels = paste("P", rownames(s_bio), sep=""),
+     pos = 3, cex = 0.9, col = "darkred")
+@
+
+\paragraph{Análisis preliminar.}
+La visualización revela una estructura clara en los datos: cuatro de las cinco observaciones (P1, P2, P3, P5) forman un grupo compacto en la región de alta asistencia (valores superiores a 9 en al menos uno de los ejes). Por contraposición, el punto \textbf{P4 (2, 1)} aparece aislado en la región de baja asistencia, muy distante del resto del grupo.
+Esta inspección visual sugiere fuertemente que P4 será identificado como \textit{outlier} tanto por métodos de proximidad (por su gran distancia a los vecinos) como de densidad (por estar en una región vacía).
+
+\newpage
+
+\subsubsection{4. Método de Proximidad: K-Vecinos (Implementación Manual)}
+
+En esta sección se desarrolla un algoritmo basado en la proximidad para la detección de anomalías. El enfoque fundamental consiste en medir cuán aislado se encuentra un punto respecto al resto de la muestra.
+
+\paragraph{Fundamento teórico general.}
+El método de los $K$-Vecinos más cercanos ($K$-NN) para detección de \textit{outliers} se basa en la premisa de que las observaciones normales pertenecen a regiones densas (tienen vecinos cerca), mientras que las anómalas están alejadas.
+El procedimiento estándar consiste en:
+\begin{enumerate}
+    \item Calcular la distancia entre todos los pares de observaciones posibles. Habitualmente se emplea la \textbf{distancia euclídea}:
+    \[ d(P_i, P_j) = \sqrt{(x_i - x_j)^2 + (y_i - y_j)^2} \]
+    \item Para cada punto, ordenar las distancias a los demás de menor a mayor.
+    \item Identificar la distancia a su $k$-ésimo vecino más cercano, denotada como $d^k(P_i)$.
+    \item Comparar esta distancia con un umbral predefinido $D^*$. Si $d^k(P_i) > D^*$, el punto se considera un \textit{outlier} por proximidad.
+\end{enumerate}
+Dado el reducido tamaño de la muestra ($N=5$), se selecciona $K=3$ para evaluar la cercanía a la mayoría del grupo, y un umbral $D^*=5$ basado en la dispersión observada en los ejes del gráfico inicial.
+
+\paragraph{Implementación manual en R.}
+Para cumplir con el objetivo de realizar una implementación desde cero, se ha desarrollado el algoritmo sin recurrir a la función \texttt{dist()} de R para el cálculo de distancias, optando por un enfoque iterativo mediante bucles. El procedimiento se estructura en tres fases lógicas:
+
+\begin{enumerate}
+    \item \textbf{Cálculo de la Matriz de Distancias:} Se inicializa una matriz cuadrada de dimensión $N \times N$ con ceros. Mediante un doble bucle \texttt{for}, se recorre cada par de puntos $(i, j)$, se calcula la diferencia al cuadrado de sus coordenadas (mujeres y hombres), se suman estas diferencias y se obtiene la raíz cuadrada. Este valor se asigna a la posición $[i, j]$ de la matriz.
+    \item \textbf{Identificación de Vecinos:} Para cada observación (fila $i$ de la matriz de distancias), se utiliza la función \texttt{order()}. Esta función es crucial aquí, ya que no devuelve las distancias ordenadas, sino los \textit{índices} de los puntos ordenados por cercanía. Esto nos permite saber no solo \emph{cuál} es la distancia al tercer vecino, sino \emph{quién} es ese vecino.
+    \item \textbf{Detección:} Se selecciona la distancia correspondiente al $K$-ésimo vecino (ignorando la distancia 0 del punto a sí mismo) y se compara contra el umbral $D^*$ para emitir el diagnóstico final.
+\end{enumerate}
+
+A continuación se presenta el código completo implementando esta lógica:
+
+<<ejercicio2_4_knn_manual_detallado, echo=TRUE, results=verbatim>>=
+# --- Parámetros del algoritmo K-NN ---
+K <- 3            # Buscamos el 3er vecino más cercano
+UMBRAL_DIST <- 5  # Si la distancia al 3er vecino es > 5, es outlier
+
+# --- Paso 1: Cálculo Manual de la Matriz de Distancias ---
+# Convertimos el data frame a matriz para agilizar los cálculos por índices
+datos_m <- as.matrix(s_bio)
+n <- nrow(datos_m)
+
+# Inicializamos una matriz vacía de n x n para almacenar las distancias
+matriz_dist <- matrix(0, nrow=n, ncol=n)
+
+# Doble bucle para calcular la distancia euclídea par a par
+for (i in 1:n) {
+  for (j in 1:n) {
+    # Se calcula la diferencia al cuadrado para cada dimensión
+    dif_mujeres_sq <- (datos_m[i, 1] - datos_m[j, 1])^2
+    dif_hombres_sq <- (datos_m[i, 2] - datos_m[j, 2])^2
+    
+    # Se aplica la fórmula: raíz cuadrada de la suma de diferencias al cuadrado
+    matriz_dist[i, j] <- sqrt(dif_mujeres_sq + dif_hombres_sq)
+  }
+}
+
+cat("Matriz de Distancias Euclídeas (calculada manualmente):\n")
+print(round(matriz_dist, 2))
+
+# --- Paso 2: Análisis de Vecindad ---
+cat("\nAnálisis detallado de vecindad (K =", K, "):\n")
+
+# Vector para almacenar la distancia determinante para cada punto
+distancias_k3 <- numeric(n)
+
+for (i in 1:n) {
+  # Extraemos la fila i: distancias desde el punto P_i a todos los demás
+  dists_punto <- matriz_dist[i, ]
+  
+  # Obtenemos los índices que ordenarían estas distancias de menor a mayor.
+  # El primer índice siempre será el propio i (distancia 0).
+  orden_vecinos <- order(dists_punto)
+  
+  # Los vecinos reales son los que están a partir de la posición 2.
+  # Seleccionamos los índices de los K primeros vecinos reales.
+  indices_k_vecinos <- orden_vecinos[2:(K + 1)]
+  
+  # La distancia determinante es la del K-ésimo vecino real (posición K+1)
+  dist_k_esimo <- dists_punto[orden_vecinos[K + 1]]
+  distancias_k3[i] <- dist_k_esimo
+  
+  # Mostramos los resultados intermedios para trazabilidad
+  vecinos_str <- paste("P", indices_k_vecinos, sep="", collapse=", ")
+  cat(" -> Punto P", i, " tiene sus ", K, " vecinos más cercanos en: {", 
+      vecinos_str, "}\n", sep="")
+  cat("    Su distancia al 3er vecino es: ", round(dist_k_esimo, 2), "\n", sep="")
+}
+
+# --- Paso 3: Decisión Final (Detección) ---
+cat("\n--- Resultados Finales K-NN (Umbral =", UMBRAL_DIST, ") ---\n")
+
+for (i in 1:n) {
+  # Aplicación de la regla de decisión: dist_k > umbral => OUTLIER
+  es_outlier <- distancias_k3[i] > UMBRAL_DIST
+  
+  estado <- if (es_outlier) "DETECTADO COMO OUTLIER" else "Normal"
+  
+  cat("Punto P", i, " [Dist. K3 = ", round(distancias_k3[i], 2), "] \t-> ", 
+      estado, "\n", sep="")
+}
+@
+
+\paragraph{Interpretación de resultados.}
+El análisis detallado muestra que para la mayoría de los puntos (P1, P2, P3, P5), sus tres vecinos más cercanos se encuentran a una distancia relativamente corta (entre 2.00 y 2.83 unidades).
+Sin embargo, para el punto \textbf{P4 (2, 1)}, incluso su vecino más cercano está lejos, y su tercer vecino se encuentra a una distancia de \textbf{9.22} unidades. Al superar el umbral establecido de 5, el algoritmo K-NN identifica exitosamente a P4 como un dato anómalo por proximidad.
+
+\newpage
+
+\subsubsection{5. Método de Densidad: Local Outlier Factor (Implementación Manual)}
+
+Este segundo enfoque busca identificar anomalías basándose en la densidad local de cada punto en relación con la de sus vecinos. Es especialmente útil para detectar \textit{outliers} que podrían no estar extremadamente lejos en términos absolutos, pero sí en una región de densidad significativamente menor que su entorno.
+
+\paragraph{Fundamento teórico y algoritmo aplicado.}
+El algoritmo \textit{Local Outlier Factor} (LOF) se implementa siguiendo las fases descritas en la teoría de la asignatura:
+\begin{enumerate}
+    \item \textbf{Fase A: Cálculo de la Densidad Local ($d$).} Para cada punto $P_i$, se identifican sus $K$ vecinos más cercanos. La densidad local se define como la inversa de la distancia media a estos $K$ vecinos:
+    \[ d(P_i, K) = \left( \frac{\sum_{P_j \in N_K(P_i)} dist(P_i, P_j)}{K} \right)^{-1} \]
+    Donde $N_K(P_i)$ es el conjunto de los $K$ vecinos más cercanos de $P_i$.
+    
+    \item \textbf{Fase B: Cálculo de la Densidad Relativa Media ($drm$).} Se compara la densidad de cada punto con la densidad media de sus propios vecinos.
+    \[ drm(P_i, K) = \frac{d(P_i, K)}{\frac{\sum_{P_j \in N_K(P_i)} d(P_j, K)}{K}} \]
+    
+    \item \textbf{Fase C: Detección.} Un valor de $drm \approx 1$ indica que el punto tiene una densidad similar a la de sus vecinos (es un punto normal). Un valor de $drm$ significativamente menor que 1 indica que el punto está en una zona mucho menos densa que sus vecinos, clasificándose como \textit{outlier}.
+\end{enumerate}
+Para este ejercicio se utiliza la \textbf{Distancia Manhattan} ($d(P_i, P_j) = |x_i - x_j| + |y_i - y_j|$) y un vecindario de $K=3$.
+
+\paragraph{Implementación manual en R.}
+La implementación del algoritmo LOF requiere una estructura más compleja que el K-NN, ya que necesitamos almacenar información intermedia (quiénes son los vecinos de cada punto) para utilizarla en fases posteriores. El desarrollo se ha estructurado en tres bloques lógicos que se corresponden con las fases teóricas:
+
+\begin{enumerate}
+    \item \textbf{Fase A (Cálculo de Densidades Locales):}
+    En primer lugar, se recalcula la matriz de distancias utilizando la métrica \textbf{Manhattan}, tal como se especificó en el desarrollo teórico de este apartado.
+    Posteriormente, iteramos sobre cada observación $P_i$ para:
+    \begin{itemize}
+        \item Identificar sus $K$ vecinos más cercanos mediante la función \texttt{order()}, seleccionando los índices desde la posición 2 hasta $K+1$. Es crucial \textbf{almacenar estos índices} en una lista (\texttt{vecinos\_indices}), ya que los necesitaremos en la Fase B.
+        \item Calcular la suma de las distancias a esos $K$ vecinos.
+        \item Aplicar la fórmula de la densidad local: $d(P_i) = (\text{suma\_distancias} / K)^{-1}$.
+    \end{itemize}
+    
+    \item \textbf{Fase B (Cálculo del \textit{drm}):}
+    Una vez disponemos de la densidad local de \emph{todos} los puntos, abrimos un nuevo bucle. Para cada punto $P_i$:
+    \begin{itemize}
+        \item Recuperamos quiénes eran sus vecinos usando la lista \texttt{vecinos\_indices} guardada anteriormente.
+        \item Accedemos a las densidades previamente calculadas para esos vecinos específicos.
+        \item Calculamos la media de esas densidades vecinas.
+        \item Finalmente, obtenemos el \textit{drm} dividiendo la densidad del punto $P_i$ entre la media de densidades de sus vecinos.
+    \end{itemize}
+    
+    \item \textbf{Fase C (Detección):}
+    Se comparan los valores finales de \textit{drm} con el umbral establecido ($0.8$). Los puntos con un valor inferior se marcan como \textit{outliers}, indicando que se encuentran en una zona significativamente menos densa que la de sus vecinos inmediatos.
+\end{enumerate}
+
+A continuación se presenta el código completo que implementa esta lógica paso a paso:
+
+<<ejercicio2_4_lof_manual_detallado, echo=TRUE, results=verbatim>>=
+# --- Parámetros del algoritmo LOF ---
+K_LOF <- 3        # Número de vecinos para el cálculo de densidad
+UMBRAL_DRM <- 0.8 # Umbral de detección (basado en la teoría del curso)
+
+cat("=== INICIO ANÁLISIS LOF MANUAL (K =", K_LOF, ") ===\n")
+
+# --- Paso previo: Cálculo de la Matriz de Distancias (Métrica Manhattan) ---
+# Se recalculan las distancias usando la fórmula: |x1-x2| + |y1-y2|
+matriz_dist_manhattan <- matrix(0, nrow=n, ncol=n)
+for (i in 1:n) {
+  for (j in 1:n) {
+    matriz_dist_manhattan[i, j] <- abs(datos_m[i,1] - datos_m[j,1]) + 
+                                   abs(datos_m[i,2] - datos_m[j,2])
+  }
+}
+
+# --- FASE A: Cálculo de Densidades Locales ---
+densidad_local <- numeric(n)
+# Creamos una lista para almacenar los índices de los vecinos de cada punto,
+# ya que los necesitaremos en la Fase B.
+vecinos_indices <- vector("list", n)
+
+cat("\n--- Fase A: Cálculo de Densidades Locales ---\n")
+for (i in 1:n) {
+  dists <- matriz_dist_manhattan[i, ]
+  orden <- order(dists)
+  
+  # Identificamos los K vecinos más cercanos (excluyendo el propio punto 'i')
+  mis_vecinos <- orden[2:(K_LOF + 1)]
+  vecinos_indices[[i]] <- mis_vecinos
+  
+  # Calculamos la suma de distancias a estos vecinos
+  suma_dist_vecinos <- sum(dists[mis_vecinos])
+  
+  # Aplicamos la fórmula de densidad local (inversa de la distancia media)
+  densidad_local[i] <- (suma_dist_vecinos / K_LOF)^-1
+  
+  # Mostramos trazabilidad del cálculo
+  vecinos_str <- paste("P", mis_vecinos, sep="", collapse=", ")
+  cat("P", i, ": Vecinos {", vecinos_str, "} | Suma Dist: ", suma_dist_vecinos, 
+      " | Densidad: ", round(densidad_local[i], 4), "\n", sep="")
+}
+
+# --- FASE B: Cálculo de la Densidad Relativa Media (drm) ---
+drm_scores <- numeric(n)
+
+cat("\n--- Fase B: Cálculo de Densidad Relativa Media (drm) ---\n")
+for (i in 1:n) {
+  # 1. Recuperamos los índices de los vecinos del punto 'i'
+  mis_vecinos <- vecinos_indices[[i]]
+  
+  # 2. Obtenemos las densidades ya calculadas de esos vecinos
+  densidades_vecinos <- densidad_local[mis_vecinos]
+  
+  # 3. Calculamos la media de las densidades del vecindario
+  media_dens_vecinos <- mean(densidades_vecinos)
+  
+  # 4. Calculamos el score drm: comparación de mi densidad vs la de mis vecinos
+  drm_scores[i] <- densidad_local[i] / media_dens_vecinos
+  
+  cat("P", i, " [Dens: ", round(densidad_local[i], 3), "] / [Media Vecinos: ", 
+      round(media_dens_vecinos, 3), "] = drm: ", round(drm_scores[i], 4), "\n", sep="")
+}
+
+# --- FASE C: Detección Final de Outliers ---
+cat("\n--- Fase C: Resultados Finales LOF (Umbral drm <", UMBRAL_DRM, ") ---\n")
+for (i in 1:n) {
+  # Aplicamos la regla de decisión: si drm es significativamente bajo (< umbral)
+  es_outlier <- drm_scores[i] < UMBRAL_DRM
+  
+  estado <- if (es_outlier) "DETECTADO COMO OUTLIER (baja densidad relativa)" else "Normal"
+  
+  cat("Punto P", i, "\t| drm =", round(drm_scores[i], 4), "\t->", estado, "\n")
+}
+@
+
+\paragraph{Interpretación de resultados LOF.}
+Los resultados muestran que los puntos P1, P2, P3 y P5 tienen valores de \textit{drm} cercanos a 1 (entre 0.90 y 1.16), lo que indica que su densidad es comparable a la de sus vecinos; son puntos que forman parte de un \textit{cluster} homogéneo.
+Por el contrario, el punto \textbf{P4} presenta un \textit{drm} extremadamente bajo de \textbf{0.1852}. Esto significa que su densidad local es aproximadamente cinco veces menor que la densidad media de sus vecinos más cercanos. Este contraste tan marcado lo identifica inequívocamente como una anomalía local, confirmando el resultado obtenido anteriormente por el método de proximidad.
 
 \section{Conclusiones}
 [...AQUÍ VA TU TEXTO: Escribe tus conclusiones finales sobre el proyecto. Por ejemplo: "La implementación manual del algoritmo Apriori en R, aunque compleja, permite un entendimiento profundo de sus mecanismos internos, como la generación de candidatos y el conteo de soporte. El uso de Sweave ha sido fundamental para crear este documento reproducible..."]
