@@ -76,6 +76,379 @@ print(cuartiles)
 
 
 # ==============================================================================
+# EJERCICIO 1.4: DETECCIÓN DE OUTLIERS (K-VECINOS Y LOF)
+# ==============================================================================
+
+# --------------------------------------------------------------------------
+# FASE 1: K-VECINOS
+# --------------------------------------------------------------------------
+
+# En primer lugar metemos los datos
+(muestra<-matrix(c(4,4,4,3,5,5,1,1,5,4),2,5))
+
+# Luego hacemos:
+(muestra<-t(muestra))
+
+# Calculamos las distancias con la función dist (distancias euclídeas) 
+# y las metemos en una matriz
+(distancias=as.matrix(dist(muestra)))
+
+# Y definimos las distancias como una matriz 5x5
+(distancias=matrix(distancias,5,5))
+
+# Cogemos 3 k-vecinos para buscar los outliers, pero como cuenta cada punto consigo mismo,
+# debemos buscar la 4 distancia. Cogemos las columnas y las ordenamos.
+for(i in 1:5) {distancias[,i]=sort(distancias[,i])}; (distanciasord=distancias)
+
+# Ahora buscamos aquellos k-3 vecinos que estén a una distancia mayor de aquella que definimos
+# para encontrar los outliers, es decir, la columna cuya 4ª fila sea mayor a la distancia dada,
+# es un outlier.
+for (i in 1:5) {if (distanciasord[4,i]>2.5) {print(i); print("es un outlier")}}
+
+# --------------------------------------------------------------------------
+# FASE 2: LOF
+# --------------------------------------------------------------------------
+
+# Se instala el paquete Rlof
+install.packages("Rlof")
+
+library(Rlof)
+
+# Se define la matriz de datos con 5 observaciones y 2 variables
+# Las variables representan calificaciones en Teoría y Laboratorio de 5 estudiantes
+muestra <- matrix(c(4,4,
+                    4,3,
+                    5,5,
+                    1,1,
+                    5,4), 
+                  byrow = TRUE, ncol = 2)
+
+# Se asignan nombres a las columnas y filas
+colnames(muestra) <- c("Teoria","Laboratorio")
+rownames(muestra) <- 1:5
+
+# Se imprime la matriz de datos
+print("Matriz de datos:")
+print(muestra)
+
+# Se elige el valor de k (número de vecinos)
+k <- 3
+
+# Se aplica la función lof() del paquete Rlof
+lof_scores <- Rlof::lof(muestra, k = k, method = "manhattan")
+
+# Se muestran los valores LOF redondeados a 3 decimales
+print(paste("Valores LOF para k =", k, ":"))
+print(round(lof_scores, 3))
+
+# Se establece un umbral para identificar outliers
+umbral <- 1.5
+
+# Se identifican los índices de las observaciones que superan el umbral
+outliers <- which(lof_scores > umbral)
+
+# Se muestran los resultados
+if (length(outliers) == 0) {
+  cat("\nNo se detectaron outliers (LOF <", umbral, ")\n")
+} else {
+  cat("\nObservaciones detectadas como outliers (LOF >", umbral, "):\n")
+  print(outliers)
+  print("Coordenadas de los outliers:")
+  print(muestra[outliers, ])
+}
+
+
+# ==============================================================================
+# EJERCICIO 2.1: ANÁLISIS DESCRIPTIVO MANUAL
+# ==============================================================================
+
+# ============================
+# Definición de funciones 
+# ============================
+
+# Función para contar filas 
+contar_filas <- function(vec) {
+  # Se inicializa el contador
+  n <- 0
+  # Se itera elemento a elemento y se incrementa el contador
+  for (._ in vec) n <- n + 1
+  # Se retorna el total contado
+  n
+}
+
+# Función para contar columnas 
+contar_columnas <- function(df) {
+  # Se inicializa el contador
+  c <- 0
+  # Se itera sobre los nombres de las columnas y se incrementa el contador
+  for (._ in names(df)) c <- c + 1
+  # Se retorna el total contado
+  c
+}
+
+# Función para ordenar índices 
+ordenar_indices <- function(x, decreasing = FALSE) {
+  # Se cuenta manualmente el número de elementos
+  n <- 0
+  for (._ in x) n <- n + 1
+  # Se crea un vector con los índices 1..n
+  idx <- 1:n
+  # Se aplica un algoritmo de ordenamiento (burbuja)
+  for (i in 1:(n - 1)) {
+    for (j in (i + 1):n) {
+      # Si el orden es ascendente se compara menor que, si es descendente mayor que
+      if ((!decreasing && x[j] < x[i]) || (decreasing && x[j] > x[i])) {
+        # Intercambiar elementos
+        tmp <- x[i]; x[i] <- x[j]; x[j] <- tmp
+        # Intercambiar índices
+        tmp2 <- idx[i]; idx[i] <- idx[j]; idx[j] <- tmp2
+      }
+    }
+  }
+  # Se retornan los índices ordenados
+  idx
+}
+
+# Función para calcular el rango 
+rango_manual <- function(x) {
+  # Inicializar máximo y mínimo con el primer valor
+  maximo <- x[1]
+  minimo <- x[1]
+  # Iterar sobre los valores para encontrar máximo y mínimo
+  for (valor in x) {
+    # Si el valor es mayor que el máximo actual, actualizar máximo
+    if (valor > maximo) maximo <- valor
+    # Si el valor es menor que el mínimo actual, actualizar mínimo
+    if (valor < minimo) minimo <- valor
+  }
+  # Retornar el rango
+  maximo - minimo
+}
+
+# Función para obtener valores únicos
+valores_unicos_manual <- function(x) {
+  # En primer lugar, se crea un vector vacío para almacenar los valores únicos
+  unicos <- c()
+  # Se itera sobre cada valor
+  for (v in x) {
+    # Flag para indicar si el valor ya fue encontrado
+    encontrado <- FALSE
+    # Se verifica si el valor ya está en el vector de valores únicos
+    for (u in unicos) {
+      if (v == u) { encontrado <- TRUE; break }
+    }
+    # Si el valor no fue encontrado, se agrega al vector de valores únicos
+    if (!encontrado) unicos <- c(unicos, v)
+  }
+  # Se ordenan los valores únicos y se retornan
+  unicos[ordenar_indices(unicos)]
+}
+
+# Función para contar cuántos elementos hay en un vector (sin length)
+contar_elementos <- function(x) {
+  # Se inicializa el contador
+  n <- 0
+  # Se incrementa por cada elemento del vector
+  for (._ in x) n <- n + 1
+  # Se retorna el total
+  n
+}
+
+# Función para calcular la frecuencia absoluta 
+frecuencia_absoluta_manual <- function(x, valores_ordenados) {
+  # Se obtiene el número de valores únicos
+  k <- contar_elementos(valores_ordenados)
+  # Inicializar el vector de frecuencias absolutas
+  frec <- numeric(k)
+  # Se itera sobre cada valor observado
+  for (v in x) {
+    # Se compara con cada valor único
+    for (i in 1:k) {
+      # Si coincide, se incrementa la frecuencia absoluta correspondiente
+      if (v == valores_ordenados[i]) { frec[i] <- frec[i] + 1; break }
+    }
+  }
+  # Se retorna el vector de frecuencias
+  frec
+}
+
+# Función para calcular la frecuencia acumulada 
+acumulada_manual <- function(vec) {
+  # Se cuenta cuántos elementos tiene el vector
+  n <- contar_elementos(vec)
+  # Inicializar el vector de frecuencias acumuladas
+  out <- numeric(n)
+  # Se suman progresivamente las frecuencias
+  acum <- 0
+  for (i in 1:n) { acum <- acum + vec[i]; out[i] <- acum }
+  # Se retorna la acumulada
+  out
+}
+
+# Función para calcular la frecuencia relativa manual
+relativa_manual <- function(frec_abs, total) {
+  # Se cuenta el tamaño del vector de frecuencias absolutas
+  n <- contar_elementos(frec_abs)
+  # Inicializar el vector de frecuencias relativas
+  out <- numeric(n)
+  # Se calcula dividiendo la frecuencia absoluta entre el total de filas
+  for (i in 1:n) out[i] <- frec_abs[i] / total
+  # Se retorna la frecuencia relativa
+  out
+}
+
+# Función para calcular la media 
+media_manual <- function(x) {
+  # Se incializa la suma a cero
+  suma <- 0
+  # Se cuenta el número de elementos
+  n <- contar_elementos(x)
+  # Se suma cada valor
+  for (v in x) suma <- suma + v
+  # Se retorna la media
+  suma / n
+}
+
+# Función para calcular la varianza poblacional 
+varianza_poblacional_manual <- function(x) {
+  # Se cuenta el número de elementos
+  n <- contar_elementos(x)
+  # Se calcula la media manualmente
+  m <- media_manual(x)
+  # Se calcula la suma de los cuadrados de las diferencias respecto a la media
+  suma_cuad <- 0
+  for (v in x) suma_cuad <- suma_cuad + (v - m)^2
+  # Varianza poblacional: dividir entre N
+  suma_cuad / n
+}
+
+# Función para calcular la varianza muestral 
+varianza_muestral_manual <- function(x) {
+  # Se cuenta el número de elementos
+  n <- contar_elementos(x)
+  # Si no hay suficientes datos, se retorna NA
+  if (n <= 1) return(NA_real_)
+  # Se calcula la media manualmente
+  m <- media_manual(x)
+  # Se calcula la suma de los cuadrados de las diferencias respecto a la media
+  suma_cuad <- 0
+  for (v in x) suma_cuad <- suma_cuad + (v - m)^2
+  # Varianza muestral: dividir entre (N - 1)
+  suma_cuad / (n - 1)
+}
+
+# Función para obtener la desviación estándar a partir de una varianza
+desv_estandar <- function(varianza) {
+  # Si la varianza es NA, se retorna NA
+  if (is.na(varianza)) return(NA_real_)
+  # Se calcula la raíz cuadrada de la varianza
+  sqrt(varianza)
+}
+
+# ============================
+# Script principal 
+# ============================
+
+# Se lee el archivo de datos y se indica que la primera fila contiene los nombres de las columnas
+s <- read.table("distancias.txt", header = TRUE)
+# Mostrar el data frame
+print(s)
+
+# Contar filas manualmente
+# Se inicializa el contador de filas mediante función
+filas <- contar_filas(s$distancia)
+
+# Contar columnas manualmente
+# Se inicializa el contador de columnas mediante función
+columnas <- contar_columnas(s)
+
+# Mostrar dimensiones
+cat("Dimensiones (filas x columnas): ", filas, " x ", columnas, "\n", sep = "")
+
+# Se obtienen los índices ordenados ascendente y descendentemente
+idx_asc  <- ordenar_indices(s$distancia)
+idx_desc <- ordenar_indices(s$distancia, decreasing = TRUE)
+
+# Se crean los data frames ordenados
+so_asc  <- s[idx_asc, ]
+so_desc <- s[idx_desc, ]
+
+# Mostrar los data frames ordenados
+cat("Orden ascendente por distancia:\n")
+print(so_asc)
+cat("\nOrden descendente por distancia:\n")
+print(so_desc)
+cat("\n")
+
+# Se calcula el rango de la columna 'distancia'
+rangor <- rango_manual(s$distancia)
+# Se muestra el rango
+cat("Rango (max - min) de distancia:", rangor, "\n\n")
+
+# Obtener valores únicos 
+valores_unicos <- valores_unicos_manual(s$distancia)
+
+# Contar cuántos valores únicos hay
+n_valores <- contar_elementos(valores_unicos)
+
+# Se calcula la frecuencia absoluta
+frecuencia_abs <- frecuencia_absoluta_manual(s$distancia, valores_unicos)
+
+# Mostrar frecuencia absoluta
+cat("Frecuencia absoluta:\n")
+for (i in 1:n_valores) cat(valores_unicos[i], ":", frecuencia_abs[i], "\n")
+cat("\n")
+
+# Calcular frecuencia acumulada
+frecuencia_acum <- acumulada_manual(frecuencia_abs)
+
+# Mostrar frecuencia acumulada
+cat("Frecuencia acumulada:\n")
+for (i in 1:n_valores) cat(valores_unicos[i], ":", frecuencia_acum[i], "\n")
+cat("\n")
+
+# Calcular la frecuencia relativa y frecuencia relativa acumulada
+# Frecuencia relativa (frecuencia absoluta / total de filas)
+frecuencia_rel <- relativa_manual(frecuencia_abs, filas)
+
+# Frecuencia relativa acumulada 
+frecuencia_rel_acum <- acumulada_manual(frecuencia_rel)
+
+# Mostrar frecuencia relativa
+cat("Frecuencia relativa:\n")
+for (i in 1:n_valores) cat(valores_unicos[i], ":", frecuencia_rel[i], "\n")
+cat("\n")
+
+# Mostrar frecuencia relativa acumulada
+cat("Frecuencia relativa acumulada:\n")
+for (i in 1:n_valores) cat(valores_unicos[i], ":", frecuencia_rel_acum[i], "\n")
+cat("\n")
+
+# Calcular media
+# Se calcula la media de 'distancia' usando la función manual
+media <- media_manual(s$distancia)
+# Mostrar la media
+cat("Media:", media, "\n")
+
+# Varianza muestral y poblacional
+# Se calcula la varianza poblacional manual
+varianza_poblacional <- varianza_poblacional_manual(s$distancia)
+# Se calcula la varianza muestral manual
+varianza_muestral <- varianza_muestral_manual(s$distancia)
+# Se calcula la desviación estándar poblacional como raíz de la varianza poblacional
+desv_est_poblacional <- desv_estandar(varianza_poblacional)
+# Se calcula la desviación estándar muestral como raíz de la varianza muestral
+desv_est_muestral <- desv_estandar(varianza_muestral)
+
+# Mostrar varianzas y desviaciones estándar
+cat("Varianza poblacional:", varianza_poblacional, "\n")
+cat("Desviación estándar poblacional:", desv_est_poblacional, "\n")
+cat("Varianza muestral:", varianza_muestral, "\n")
+cat("Desviación estándar muestral:", desv_est_muestral, "\n")
+
+
+
+# ==============================================================================
 # EJERCICIO 2.4: DETECCIÓN DE OUTLIERS MANUAL (K-NN y LOF)
 # ==============================================================================
 
