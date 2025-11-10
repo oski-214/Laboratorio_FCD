@@ -256,28 +256,65 @@ Del análisis de las reglas se extraen varias conclusiones importantes:
 En resumen, el análisis revela una fuerte conexión de compra entre los productos ``Pan'' y ``Agua'', y también una relación significativa entre ``Pan'' y ``Leche''.
 \newpage
 
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Ejercicio 1.3: Detección de Datos Anómalos}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 En este ejercicio se aplican tres métodos distintos para la detección de datos anómalos sobre un conjunto de datos de muestra.
 
-\subsubsection*{Carga de Datos de Muestra}
-A continuación, se definen los datos de muestra para este ejercicio.
+\subsubsection*{Descripción del conjunto de datos}
+El conjunto de datos utilizado es una pequeña muestra de 7 observaciones, cada una con dos variables cuantitativas:
+\begin{itemize}
+    \item \textbf{r}: variable cuantitativa (resistencia).
+    \item \textbf{d}: variable cuantitativa (densidad).
+\end{itemize}
+Los datos se crean directamente en R y se almacenan en un \texttt{data.frame} llamado \texttt{muestra}. El objetivo es aplicar métodos univariantes (Caja y Bigotes sobre 'r', Desviación Típica sobre 'd') y un método bivariante (Regresión sobre 'd' en función de 'r') para identificar observaciones atípicas.
+
+\subsubsection*{Implementación y Carga de Datos}
+El primer paso es crear la estructura de datos. Los datos se introducen en una matriz y luego se transforman en un \texttt{data.frame} para un manejo más fácil.
 
 <<DatosAnomalos_Setup, echo=TRUE, results=verbatim>>=
-(muestra<-t(matrix(c(3,2,3.5,12,4.7,4.1,5.2,4.9,7.1,6.1,6.2,5.2,14,5.3),2,7,dimnames=list(c("r", "d")))))
-(muestra<-data.frame(muestra))
+# La siguiente línea de código se ha dividido en varias
+# para evitar que se salga del margen al imprimirse.
+(muestra <- t(matrix(
+  c(3, 2, 3.5, 12, 4.7, 4.1, 5.2, 4.9, 7.1, 6.1, 6.2, 5.2, 14, 5.3),
+  2, 7, dimnames = list(c("r", "d"))
+)))
+(muestra <- data.frame(muestra))
 @
 
+\paragraph{Explicación de las funciones utilizadas:}
+\begin{itemize}
+    \item \texttt{matrix(data, nrow, ncol, dimnames)}: Crea una estructura de matriz. En este caso, se le pasa un vector de 14 números. Con \texttt{nrow=2} y \texttt{ncol=7}, R rellena la matriz por columnas por defecto: la primera columna es \texttt{c(3, 2)}, la segunda \texttt{c(3.5, 12)}, y así sucesivamente.
+    \item \texttt{t(x)}: Función que transpone su argumento (matriz o data frame), intercambiando filas por columnas. La matriz 2x7 se convierte en una matriz 7x2, donde cada fila representa una observación y cada columna una variable ('r' o 'd').
+    \item \texttt{data.frame(x)}: Convierte su argumento (en este caso, la matriz 7x2) en un \texttt{data.frame}. Esta es la estructura de datos estándar en R para análisis estadístico, permitiendo acceder a las columnas por su nombre (ej. \texttt{muestra\$r}).
+\end{itemize}
+
 \subsubsection{Método 1: Caja y Bigotes}
+
+\subsubsection*{Fundamento Teórico}
+El método de la caja y bigotes (Boxplot) es una técnica de detección de atípicos no paramétrica (no asume una distribución específica de los datos). Se basa en el Rango Intercuartílico (IQR), que es la diferencia entre el tercer cuartil ($Q_3$, percentil 75) y el primer cuartil ($Q_1$, percentil 25).
+
+Este método define un intervalo de "normalidad" y considera atípico (outlier) cualquier punto que caiga fuera de él. Los límites de este intervalo se calculan como:
+\[
+\text{Límite Inferior} = Q_1 - d \times IQR
+\]
+\[
+\text{Límite Superior} = Q_3 + d \times IQR
+\]
+Comúnmente, se utiliza un factor $d = 1.5$. Los valores fuera de este rango se consideran atípicos leves.
+
+\subsubsection*{Explicación de las funciones utilizadas}
+\begin{itemize}
+    \item \texttt{boxplot(x, range=1.5, plot=FALSE)}: Aunque su uso principal es gráfico, con \texttt{plot=FALSE} la función no dibuja nada, sino que devuelve una lista con las estadísticas calculadas. El componente \texttt{\$out} de esta lista contiene los valores identificados como anómalos según el criterio del \texttt{range} (por defecto 1.5).
+    \item \texttt{quantile(x, probs)}: Calcula los cuantiles de la distribución correspondientes a las probabilidades indicadas en \texttt{probs}. Se usa para obtener $Q_1$ (\texttt{probs = 0.25}) y $Q_3$ (\texttt{probs = 0.75}).
+    \item \texttt{length(x)}: Devuelve el número de elementos (longitud) del vector \texttt{x}. Se usa en el bucle \texttt{for} para iterar sobre todas las observaciones de la variable 'r'.
+\end{itemize}
 
 \subsubsection*{Explicación del Método}
 Para la detección de datos anómalos por este método se debe llevar a cabo siguiendo 4 pasos. $1^o$ se determina el valor del grado del outlier ($d$).
 $2^o$ Se ordenan los datos para el parámetro que se quiere detectar los datos anómalos, en este caso la resistencia o r. $3^o$ Se calculan los valores del
 $cuartil_{1}$ y del $cuartil_{3}$. $4^o$ se observa que valores quedan fuera del intervalo, el cual sería: $[cuartil_{1} - d * (cuartil_{3} - cuartil_{1}), cuartil_{3} + d * (cuartil_{3} - cuartil_{1})]$
-
 
 \subsubsection*{Código y Ejecución (Sweave)}
 <<Anomalos_Boxplot, echo=TRUE, results=verbatim>>=
@@ -292,16 +329,38 @@ $cuartil_{1}$ y del $cuartil_{3}$. $4^o$ se observa que valores quedan fuera del
 # Bucle para detectar outliers
 for (i in 1:length(muestra$r))
 {if (muestra$r[i]<int[1] || muestra$r[i]>int[2])
-{print("el suceso"); print(i); print(muestra$r[i]); print("es un outlier")}}
+{print("el suceso");
+print(i); print(muestra$r[i]); print("es un outlier")}}
 @
+
+\subsubsection*{Interpretación de resultados}
+La salida de \texttt{boxplot(...)\$out} identifica el valor \texttt{14} como un outlier. El cálculo manual corrobora esto: el $Q_1$ es 4.1 y el $Q_3$ es 6.65. El IQR es $6.65 - 4.1 = 2.55$.
+El intervalo de aceptación es $[4.1 - 1.5 \times 2.55, 6.65 + 1.5 \times 2.55]$, que resulta en $[0.275, 10.475]$.
+El valor 14.0 (correspondiente al suceso 7) es mayor que 10.475, por lo que el bucle \texttt{for} lo identifica correctamente como "un outlier".
 
 \subsubsection{Método 2: Desviación Típica}
 
+\subsubsection*{Fundamento Teórico}
+Este método paramétrico asume que los datos siguen una distribución normal (Gaussiana). En una distribución normal, la gran mayoría de los datos se concentran alrededor de la media. Según la regla empírica (68-95-99.7):
+\begin{itemize}
+    \item $\approx 68\%$ de los datos está a 1 desviación típica ($\sigma$) de la media ($\mu$).
+    \item $\approx 95.5\%$ de los datos está a 2 desviaciones típicas.
+    \item $\approx 99.7\%$ de los datos está a 3 desviaciones típicas.
+\end{itemize}
+El método define un intervalo de normalidad basado en la media y la desviación típica. Un valor de $d$ (grado de outlier) común es 2. Los puntos que caen fuera del intervalo $[\mu - d \times \sigma, \mu + d \times \sigma]$ se consideran anómalos. En este ejercicio se usa $d=2$.
+
+\subsubsection*{Explicación de las funciones utilizadas}
+\begin{itemize}
+    \item \texttt{mean(x)}: Calcula la media aritmética ($\bar{x}$) del vector \texttt{x}.
+    \item \texttt{var(x)}: Calcula la varianza \textbf{muestral} ($s^2$), que divide por $(n-1)$.
+    \item \texttt{length(x)}: Devuelve $n$. El código calcula la varianza \textbf{poblacional} ($\sigma^2$) a partir de la muestral, usando la fórmula $\sigma^2 = s^2 \times \frac{n-1}{n}$.
+    \item \texttt{sqrt(x)}: Calcula la raíz cuadrada, usada para obtener la desviación típica ($\sigma$) a partir de la varianza poblacional.
+\end{itemize}
+
 \subsubsection*{Explicación del Método}
 Para la detección de datos anómalos por este método se debe llevar a cabo los siguiente 4 pasos. $1^o$ se determina el valor del grado de outlier($d$).
-$2^o$ se debe hallar el valor de la media para el parámetro que se nos halla pedido, en este caso densidad o d (d_{mean}). $3^o$ Se debe calcular el valor de la 
+$2^o$ se debe hallar el valor de la media para el parámetro que se nos halla pedido, en este caso densidad o d (d_{mean}). $3^o$ Se debe calcular el valor de las
 desviación típica para dicho parámetro ($d_{desv}$). $4^o$ Se debe ver que valores quedan fuera del intervalo, el cual sería: $[d_{mean} - d * d_{desv}, d_{mean} + d * d_{desv}]$
-
 
 \subsubsection*{Código y Ejecución (Sweave)}
 <<Anomalos_SD, echo=TRUE, results=verbatim>>=
@@ -316,12 +375,31 @@ sdd<-sqrt(var(muestra$d)*((length(muestra$d)-1)/length(muestra$d)))
 # Bucle para detectar outliers
 for (i in 1:length(muestra$d))
 {if (muestra$d[i]<intdes[1] ||  muestra$d[i]>intdes[2])
-{print("el suceso"); print(i); print(muestra$d[i]); print("es un outlier")}}
+{print("el suceso");
+print(i); print(muestra$d[i]); print("es un outlier")}}
 @
+
+\subsubsection*{Interpretación de resultados}
+La media de 'd' es 5.657 y la desviación típica poblacional (sdd) es 2.857.
+El intervalo de aceptación (con $d=2$) es $[5.657 - 2 \times 2.857, 5.657 + 2 \times 2.857]$, que resulta en $[-0.057, 11.371]$.
+El bucle \texttt{for} itera sobre la variable 'd' y encuentra que el valor 12.0 (suceso 2) es mayor que 11.371, identificándolo como "un outlier".
 
 \subsubsection{Método 3: Regresión (Error de Residuos)}
 
-\subsubsection*{Explicación del Método}
+\subsubsection*{Fundamento Teórico}
+Este método se usa para detectar outliers en datos bivariantes, identificando puntos que no se ajustan a la relación o tendencia general del resto de los datos.
+Primero, se ajusta un modelo de regresión lineal (generalmente por mínimos cuadrados) para predecir $y$ a partir de $x$ ($\hat{y} = a + bx$).
+Para cada punto $(x_i, y_i)$, se calcula el \textbf{residuo} o error, que es la diferencia entre el valor real y el valor predicho: $e_i = y_i - \hat{y}_i$.
+Se calcula el error estándar de estos residuos ($Sr$). Un punto se considera anómalo si su residuo (en valor absoluto) es inusualmente grande, es decir, si $|e_i| > d \times Sr$ (donde $d$ suele ser 2 o 3). Esto significa que el punto está muy lejos (verticalmente) de la línea de tendencia.
+
+\subsubsection*{Explicación de las funciones utilizadas}
+\begin{itemize}
+    \item \texttt{lm(formula)}: Siglas de "Linear Model". Es la función principal de R para ajustar modelos de regresión lineal. La fórmula \texttt{muestra\$d ~ muestra\$r} especifica que se debe modelar 'd' (variable dependiente) en función de 'r' (variable independiente).
+    \item \texttt{summary(object)}: Proporciona un resumen detallado de un objeto modelo. Aplicado a un objeto \texttt{lm}, muestra los coeficientes, el R-cuadrado, estadísticos F y, fundamentalmente, los residuos del modelo.
+    \item \texttt{summary(dfr)\$residuals}: Esta sintaxis accede al vector numérico de los residuos (los $e_i$) que está almacenado dentro del objeto \texttt{summary}.
+    \item \texttt{sum(x)}: Suma los elementos de un vector. Se usa aquí para calcular la suma de los residuos al cuadrado (parte del cálculo del $Sr$).
+\end{itemize}
+
 \subsubsection*{Explicación del Método}
 Para la detección de datos anómalos por este método se deben llevar a cabo los 7 siguientes pasos. $1^o$ Determinar el valor del grado de outlier ($d$). 
 $2^o$ Se deben hallar los valores de $a$ y $b$ para poder tener una forma de predecir los valores de la densidad que vamos a llamar ($y_{hat}$). 
@@ -348,8 +426,14 @@ sr
 # Bucle para detectar outliers en los residuos
 for (i in 1:length(res))
 {if (res[i]>2*sr)
-{print("el suceso"); print(res[i]); print("es un outlier")}}
+{print("el suceso");
+print(res[i]); print("es un outlier")}}
 @
+
+\subsubsection*{Interpretación de resultados}
+El modelo de regresión ajustado es $d = 6.01445 - 0.05723 \times r$. El error estándar de los residuos ($Sr$) es 2.85. El umbral de detección es $2 \times Sr = 5.70$.
+El vector de residuos (los $e_i$) es \texttt{c(-3.84, 6.18, -1.64, ...)}.
+El bucle \texttt{for} compara cada residuo con el umbral 5.70. Encuentra que el segundo residuo, 6.18587, es mayor que el umbral, por lo que imprime que el suceso 2 es "un outlier". Esto significa que el punto (3.5, 12.0) está significativamente por encima de la línea de regresión que describe la tendencia general de los datos.
 
 \newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
