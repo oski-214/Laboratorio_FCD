@@ -1206,32 +1206,42 @@ All resulting code was subsequently reviewed, tested, and adapted.
 \end{itemize}
 
 \newpage
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Ejercicio 2.2: Fases del Algoritmo Apriori}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 El algoritmo se ha dividido en 7 fases lógicas, que se detallan a continuación.
 
+\subsubsection*{Descripción del conjunto de datos}
+El conjunto de datos utilizado es una muestra transaccional de 8 sucesos (compras o configuraciones de vehículos). Se analizan 6 posibles ``items'' o sucesos elementales: ``Faros de Xenon'', ``Control de Velocidad'', ``Navegador'', ``Bluetooth'', ``Techo Solar'' y ``Alarma''. Los datos se representan en una matriz de 8x6, donde un '1' indica que el suceso (fila) contiene ese item (columna) y '0' que no lo contiene. El objetivo es aplicar el algoritmo Apriori para encontrar reglas de asociación (ej. ``si compra Faros de Xenon, también compra Bluetooth'') que cumplan ciertos umbrales de soporte y confianza.
+
 \subsubsection{Fase 1: Carga de Datos y Sucesos Elementales Candidatos}
 
+\subsubsection*{Fundamento Teórico}
+El primer paso del algoritmo Apriori es identificar los ``items frecuentes'' de tamaño 1 (L1). Esto se hace escaneando la base de datos transaccional para contar la frecuencia de cada item individual. El \textbf{soporte} de un item se calcula como el número de transacciones que contienen ese item, dividido por el número total de transacciones.
+\[
+\text{Soporte}(I) = \frac{\text{Nº de transacciones que contienen } I}{\text{Nº total de transacciones}}
+\]
+Solo aquellos items cuyo soporte sea mayor o igual a un umbral de soporte mínimo (en este caso, 0.5 o 50\%) se consideran ``frecuentes'' y pasan a la siguiente fase. Los items que no alcanzan este umbral se descartan, ya que cualquier conjunto de items más grande que los contenga tampoco podrá ser frecuente (este es el principio fundamental de Apriori).
+
+\subsubsection*{Explicación de las funciones utilizadas}
+\begin{itemize}
+    \item \texttt{library(Matrix)} y \texttt{library(arules)}: Cargan las bibliotecas necesarias. \texttt{Matrix} para matrices dispersas (eficientes con muchos ceros) y \texttt{arules} para minería de reglas de asociación.
+    \item \texttt{Matrix(...)}: Crea un objeto de tipo \texttt{Matrix}. Con \texttt{sparse=TRUE}, se almacena de forma eficiente. \texttt{byrow=TRUE} indica que los datos se leen por filas.
+    \item \texttt{as(x, 'clase')}: Convierte un objeto \texttt{x} al tipo \texttt{'clase'}. Se usa para transformar la matriz en un formato \texttt{nsparseMatrix} (matriz dispersa binaria) y luego en \texttt{transactions}, que es el formato que requiere \texttt{arules}.
+    \item \texttt{t(x)}: Transpone la matriz. Es un paso necesario porque \texttt{arules} espera que los items estén en filas y las transacciones en columnas al convertir desde una matriz.
+    \item \texttt{summary(transacciones)}: Muestra un resumen de los datos transaccionales, incluyendo el número de transacciones, items, y la densidad.
+    \item \texttt{itemFrequency(x, type='absolute')}: Calcula la frecuencia de cada item. Con \texttt{type='absolute'}, devuelve el conteo (ej. 5), no la proporción.
+    \item \texttt{length(transacciones)}: Devuelve el número de transacciones (sucesos) en el conjunto de datos, que es 8.
+\end{itemize}
+
 \subsubsection*{Explicación de la Fase}
-[En esta primera fase el objetivo es ver que sucesos elementales de la muestra superan o igualan el umbral de soporte. 
-Para ello se tiene que calcular el $n^o$ de veces que aparece dicho suceso elemental en la muestra, dividido por el núemro de 
-elemento de la muestra. Los sucesos elementales que superen o igualen el umbral, son los que en la siguiente 
+[En esta primera fase el objetivo es ver que sucesos elementales de la muestra superan o igualan el umbral de soporte.
+Para ello se tiene que calcular el $n^o$ de veces que aparece dicho suceso elemental en la muestra, dividido por el núemro de
+elemento de la muestra. Los sucesos elementales que superen o igualen el umbral, son los que en la siguiente
 fase se utilizarán para crear los sucesos candidatos de las diferentes dimensiones. Antes de llevar a cabo estos pasos, se debe
 cargar la muestra.]
-
-\subsubsection*{Prompt de IA Utilizado}
-\begin{quote}
-[From the image i have just sent you i need to use a support threshold of 80% in order 
-to decide which of the elements ("Faros de Xenon", "Alarma" and so on) go through and 
-are going to be consider in the next step to start creating the candidates subsets. 
-So in the image i have just sent you it is clear that i an identify the number of 
-times each element appears, so how can i go through them all dividing the number 
-of times they appear and dividing it by the amount of "sucesos"
-that there are (there are 8) so that i get the percentages of the times they appear
-for a subset of 8 elements and can discriminate which elements surpass the 0.5 threshold]
-\end{quote}
 
 \subsubsection*{Código y Ejecución (Sweave)}
 <<Fase1_codigo, echo=TRUE, results=verbatim>>=
@@ -1259,10 +1269,39 @@ elementos_S_validos <- support_sucesos[support_sucesos >= support_threshold]
 elementos_S_validos
 @
 
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+[From the image i have just sent you i need to use a support threshold of 50% in order
+to decide which of the elements (``Faros de Xenon'', ``Alarma'' and so on) go through and
+are going to be consider in the next step to start creating the candidates subsets.
+So in the image i have just sent you it is clear that i an identify the number of
+times each element appears, so how can i go through them all dividing the number
+of times they appear and dividing it by the amount of ``sucesos''
+that there are (there are 8) so that i get the percentages of the times they appear
+for a subset of 8 elements and can discriminate which elements surpass the 0.5 threshold]
+\end{quote}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Fase 2: Generación de Sucesos Candidatos (L2, L3, L4)}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Fundamento Teórico}
+Esta fase implementa la \textbf{generación de candidatos} (Apriori-gen). Para generar candidatos de tamaño $k$ (Lk), se utiliza el conjunto de itemsets frecuentes de tamaño $k-1$ (L(k-1)). El método estándar (join step) consiste en unir dos itemsets frecuentes $A$ y $B$ de L(k-1) si comparten los primeros $k-2$ items.
+Por ejemplo, para generar L3 (candidatos de tamaño 3) a partir de L2, se unen {A, B} y {A, C} para formar {A, B, C}.
+El algoritmo Apriori también incluye un ``pruning step'' (poda) donde se elimina cualquier candidato de Lk que contenga un subconjunto de tamaño $k-1$ que no esté en L(k-1). Este código implementa una versión simplificada del ``join step'' al combinar todos los pares posibles y asegurarse de que el tamaño resultante sea $k$.
+
+\subsubsection*{Explicación de las funciones utilizadas}
+\begin{itemize}
+    \item \texttt{lapply(X, FUN)}: Aplica la función \texttt{FUN} a cada elemento de la lista o vector \texttt{X}. Se usa para convertir la lista de items L1 en una lista de vectores (ej. \texttt{'ItemA'} -> \texttt{c('ItemA')}).
+    \item \texttt{generate\_candidates(L\_prev)}: Es una función personalizada para generar la siguiente generación de candidatos.
+    \item \texttt{length(x)}: Devuelve el número de elementos en la lista \texttt{L\_prev} (cuántos itemsets) o en el itemset \texttt{L\_prev[[1]]} (el tamaño $k-1$).
+    \item \texttt{seq\_len(n)}: Genera una secuencia de 1 a \texttt{n}. Se usa para los bucles \texttt{for}.
+    \item \texttt{all(a[1:(k-2)] == b[1:(k-2)])}: Comprueba si los primeros $k-2$ elementos de los itemsets \texttt{a} y \texttt{b} son idénticos. Es la condición de unión (join).
+    \item \texttt{sort(unique(c(a, b)))}: Combina los dos itemsets \texttt{a} y \texttt{b}, elimina duplicados (por si acaso) y los ordena. La ordenación es crucial para que {A, B} sea tratado igual que {B, A}.
+    \item \texttt{append(list, new\_element)}: Añade un nuevo elemento (el nuevo candidato) a la lista de candidatos.
+    \item \texttt{unique(lapply(...))}: Se usa al final para eliminar candidatos duplicados que puedan haberse generado, convirtiéndolos primero a texto con \texttt{paste()} y luego de vuelta a listas con \texttt{strsplit()}.
+\end{itemize}
 
 \subsubsection*{Explicación de la Fase}
 [En esta segunda fase, se van a construir los sucesos candidatos para cada una de las dimensiones necesarias en función del número
@@ -1271,33 +1310,6 @@ crear sucesos candidatos hasta la cuarta dimensión. Para crear estos sucesos ca
 candidatos de la dimensión K-1 donde los últimos elementos de ambos sean diferentes y el resto de elemetos de ambos sean iguales
 de forma que no haya conflicto a la hora de combinar ambos sucesos].
 
-\subsubsection*{Prompt de IA Utilizado}
-\begin{quote}
-[Okey great lets continue on to the next step. In this next step i need you get
-the candidate subsets that are going to form up to 4 dimmensions 
-(because 4 elements passed the threshold). 
-
-In case you do not know how this candidates subsets are formed, 
-you need to start with the lowest dimmension possible other that K=1 and so 
-for this dimmension and the follwing you need to have subsets in which the last 
-element of the subset are different and the previous ones are exactly the same 
-in order to combine them.
-
-For example, for the dimmension k=2 we need to combine the subsets 
-that passed the threshold in a way that the new subsets that are formed with 
-to subsets of the k=1 dimmension have the last element different and the rest are the same.
-In this dimmension because there are combinations of subsets of 1 elements you basically
-need to have all possible combinations of the k=1 subsets .
-
-But for the k=3 and so on you need to combine sets of k=2 o k=k-1 respectively
-following the rules I told you so for example if we have {X,C} and {X,N} which
-are from the k=2 dimmension then we can combine them because it follows the 
-rules i mentioned obtaining anew subset of {X,C,N} for the dimmension k=3.
-
-And for yout information the elements that passed the threshold were Faros de Xenon, 
-Control de Velocidad, Navegador, Bluetooth.]
-\end{quote}
-
 \subsubsection*{Código y Ejecución (Sweave)}
 <<Fase2_codigo, echo=TRUE, results=verbatim>>=
 # 2ª FASE ----------------------------------------------------
@@ -1305,36 +1317,36 @@ L1 <- c("Faros de Xenon", "Control de Velocidad", "Navegador", "Bluetooth")
 L1_lista <- lapply(L1, function(x) c(x))
 
 generate_candidates <- function(L_prev) {
-   n <- length(L_prev)
-   if (n <= 1) return(list())     # nothing to join
-   
-   k <- length(L_prev[[1]]) + 1   # target candidate size
-   
-   # make sure items inside each subset are sorted
-   L_prev <- lapply(L_prev, sort)
-   candidates <- list()
-   
-   for (i in seq_len(n - 1)) {         # iterate all but last
-     for (j in seq(i + 1, n)) {         # compare with following sets
-       a <- L_prev[[i]]
-       b <- L_prev[[j]]
-       
-       # join rule: all first (k-2) items identical
-       if (k - 2 == 0 || all(a[1:(k - 2)] == b[1:(k - 2)])) {
-         new_set <- sort(unique(c(a, b)))
-         if (length(new_set) == k) {
-           candidates <- append(candidates, list(new_set))
-         }
-       }
-     }
-   }
-   
-   # remove duplicates (if any)
-   if (length(candidates) > 0) {
-     candidates <- unique(lapply(candidates, function(x) paste(sort(x), collapse = ",")))
-     candidates <- lapply(candidates, function(x) strsplit(x, ",")[[1]])
-   }
-   return(candidates)
+    n <- length(L_prev)
+    if (n <= 1) return(list())     # nothing to join
+    
+    k <- length(L_prev[[1]]) + 1     # target candidate size
+    
+    # make sure items inside each subset are sorted
+    L_prev <- lapply(L_prev, sort)
+    candidates <- list()
+    
+    for (i in seq_len(n - 1)) {         # iterate all but last
+      for (j in seq(i + 1, n)) {         # compare with following sets
+        a <- L_prev[[i]]
+        b <- L_prev[[j]]
+        
+        # join rule: all first (k-2) items identical
+        if (k - 2 == 0 || all(a[1:(k - 2)] == b[1:(k - 2)])) {
+          new_set <- sort(unique(c(a, b)))
+          if (length(new_set) == k) {
+            candidates <- append(candidates, list(new_set))
+          }
+        }
+      }
+    }
+    
+    # remove duplicates (if any)
+    if (length(candidates) > 0) {
+      candidates <- unique(lapply(candidates, function(x) paste(sort(x), collapse = ",")))
+      candidates <- lapply(candidates, function(x) strsplit(x, ",")[[1]])
+    }
+    return(candidates)
 }
 
 L2 <- generate_candidates(L1_lista)
@@ -1350,43 +1362,74 @@ print("Candidatos L4:")
 print(L4)
 @
 
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+[Okey great lets continue on to the next step. In this next step i need you get
+the candidate subsets that are going to form up to 4 dimmensions
+(because 4 elements passed the threshold).
+
+In case you do not know how this candidates subsets are formed,
+you need to start with the lowest dimmension possible other that K=1 and so
+for this dimmension and the follwing you need to have subsets in which the last
+element of the subset are different and the previous ones are exactly the same
+in order to combine them.
+
+For example, for the dimmension k=2 we need to combine the subsets
+that passed the threshold in a way that the new subsets that are formed with
+to subsets of the k=1 dimmension have the last element different and the rest are the same.
+In this dimmension because there are combinations of subsets of 1 elements you basically
+need to have all possible combinations of the k=1 subsets .
+
+But for the k=3 and so on you need to combine sets of k=2 o k=k-1 respectively
+following the rules I told you so for example if we have {X,C} and {X,N} which
+are from the k=2 dimmension then we can combine them because it follows the
+rules i mentioned obtaining anew subset of {X,C,N} for the dimmension k=3.
+
+And for yout information the elements that passed the threshold were Faros de Xenon,
+Control de Velocidad, Navegador, Bluetooth.]
+\end{quote}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Fase 3: Hash-Tree de sucesos candidatos para cada dimensión}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-\subsubsection*{Explicación de la Fase}
-[En esta fase se van a crear los hash-trees de los sucesos candidatos. Para llevar a cabo este paso se debe llevar a cabo una 
-transformación numérica de los sucesos candidatos. Una vez se tenga hecho, se podrá crear un hash tree por 
-cada dimensión (L2, L3, L4)]
+\subsubsection*{Fundamento Teórico}
+Para hacer el conteo de soportes (Fase 5) de manera eficiente, el algoritmo Apriori (y otras implementaciones) utiliza estructuras de datos avanzadas como los \textbf{Hash Trees} (árboles hash). El objetivo es evitar tener que comparar cada candidato con cada transacción (lo cual sería muy lento).
+Un Hash Tree almacena los itemsets candidatos. Cada nodo interno es una tabla hash, y los nodos hoja almacenan los propios candidatos. Para contar, se toman los itemsets de una transacción y se ``filtran'' a través del árbol. Si un itemset de la transacción ``llega'' a un nodo hoja, significa que coincide con un candidato, y se incrementa el contador de ese candidato.
+Para que este árbol funcione, los items deben tener un orden canónico. Por eso, en esta fase, los nombres (``Faros de Xenon'') se traducen a números (1) y los itemsets se ordenan numéricamente (ej. {4, 1, 3} siempre se convierte en {1, 3, 4}).
 
-\subsubsection*{Prompt de IA Utilizado}
-\begin{quote}
-[Okey great, thanks, lets move on to the next step, now we need to start working 
-with tree structures, first you are going to focus on the candidates subsets, 
-which first need to be transformed the words into numbers, using this transformation: 
-\{ Faros de Xenon =1, Control de Velocidad = 2, Navegador =3, Bluetooth =4, Techo Solar =5,
-Alarma =6). Once you transform the candidates to the numbers, this numbers must be sorted, 
-for example if you have a subset that ends up being 243, it has to trasform to 234.]
-\end{quote}
+\subsubsection*{Explicación de las funciones utilizadas}
+\begin{itemize}
+    \item \texttt{c('Nombre' = 1, ...)}: Crea un vector nombrado. Esto es un ``mapa'' o ``diccionario'' muy eficiente en R. Permite buscar un nombre (ej. \texttt{item\_map['Navegador']}) y obtener su número (3).
+    \item \texttt{encode\_candidates(candidates, mapping)}: Función personalizada para aplicar la codificación numérica.
+    \item \texttt{lapply(candidates, function(subset) ...)}: Itera sobre cada itemset candidato (cada \texttt{subset}) de la lista \texttt{candidates}.
+    \item \texttt{unname(mapping[subset])}: Toma el \texttt{subset} (ej. \texttt{c('Faros de Xenon', 'Navegador')}), lo usa para indexar el mapa (lo que devuelve \texttt{c(1, 3)} pero con los nombres \texttt{'Faros de Xenon', 'Navegador'}) y \texttt{unname()} elimina esos nombres, dejando un vector numérico limpio \texttt{c(1, 3)}.
+    \item \texttt{sort(nums)}: Ordena el vector numérico resultante (ej. de \texttt{c(3, 1)} a \texttt{c(1, 3)}), asegurando el orden canónico necesario para el Hash Tree.
+\end{itemize}
+
+\subsubsection*{Explicación de la Fase}
+[En esta fase se van a crear los hash-trees de los sucesos candidatos. Para llevar a cabo este paso se debe llevar a cabo una
+transformación numérica de los sucesos candidatos. Una vez se tenga hecho, se podrá crear un hash tree por
+cada dimensión (L2, L3, L4)]
 
 \subsubsection*{Código y Ejecución (Sweave)}
 <<Fase3_codigo, echo=TRUE, results=verbatim>>=
 # 3º FASE ----------------------------------------------------
 item_map <- c(
-   "Faros de Xenon" = 1,
-   "Control de Velocidad" = 2,
-   "Navegador" = 3,
-   "Bluetooth" = 4,
-   "Techo Solar" = 5,
-   "Alarma" = 6
+    "Faros de Xenon" = 1,
+    "Control de Velocidad" = 2,
+    "Navegador" = 3,
+    "Bluetooth" = 4,
+    "Techo Solar" = 5,
+    "Alarma" = 6
 )
 
 encode_candidates <- function(candidates, mapping) {
-   lapply(candidates, function(subset) {
-     nums <- unname(mapping[subset])     # map words → numbers
-     sort(nums)
-   })
+    lapply(candidates, function(subset) {
+      nums <- unname(mapping[subset])     # map words → numbers
+      sort(nums)
+    })
 }
 
 L2_numerico <- encode_candidates(L2, item_map)
@@ -1398,9 +1441,38 @@ print(L2_numerico)
 @
 
 
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+[Okey great, thanks, lets move on to the next step, now we need to start working
+with tree structures, first you are going to focus on the candidates subsets,
+which first need to be transformed the words into numbers, using this transformation:
+\{ Faros de Xenon =1, Control de Velocidad = 2, Navegador =3, Bluetooth =4, Techo Solar =5,
+Alarma =6). Once you transform the candidates to the numbers, this numbers must be sorted,
+for example if you have a subset that ends up being 243, it has to trasform to 234.]
+\end{quote}
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Fase 4: Construcción de Hash Trees para cada suceso de la muestra para cada dimensión}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Fundamento Teórico}
+Esta fase prepara los datos de las transacciones (la muestra) para el conteo. El método estándar de Apriori tomaría el Hash Tree de candidatos (de la Fase 3) y, por cada transacción, generaría todos sus subconjuntos de tamaño $k$ (ej. $k=2, 3, 4$) y los usaría para ``atravesar'' el árbol de candidatos e incrementar contadores.
+Este código implementa un enfoque ligeramente diferente: en lugar de tener un solo árbol de candidatos y ``filtrar'' las transacciones, construye un árbol para los candidatos (L2, L3, L4) y luego construye un árbol separado \textit{para cada transacción} que contiene todos sus subconjuntos (C2, C3, C4).
+En la Fase 5, el conteo se realizará comparando los caminos (candidatos) del árbol de candidatos contra los árboles de cada transacción. El primer paso aquí es codificar numéricamente las transacciones (igual que en la Fase 3) y luego generar todos los subconjuntos relevantes (de tamaño 2, 3 y 4) para cada transacción.
+
+\subsubsection*{Explicación de las funciones utilizadas}
+\begin{itemize}
+    \item \texttt{Filter(function(x) length(x) == 2, all\_candidates)}: Separa la lista de candidatos numéricos por tamaño (L2, L3, L4).
+    \item \texttt{make\_node(item, is\_end)}: Función para crear un nuevo nodo del árbol. Usa \texttt{new.env()} para crear un entorno, que en R es una estructura eficiente para búsquedas (similar a una tabla hash o diccionario).
+    \item \texttt{insert\_candidate(root, candidate)}: Inserta un itemset (ej. \texttt{c(1, 3)}) en el árbol. Itera por los items; para el item '1', busca un hijo '1' en el nodo actual. Si no existe, lo crea. Luego se ``mueve'' a ese hijo y repite el proceso para el item '3'. Al final, marca el último nodo (\texttt{is\_end = TRUE}) para saber que \texttt{{1, 3}} es un candidato completo.
+    \item \texttt{build\_tree(candidates)}: Función que inicializa un árbol raíz vacío y llama a \texttt{insert\_candidate} para cada candidato en la lista.
+    \item \texttt{print\_tree(node, depth)}: Función recursiva para imprimir el árbol de forma legible.
+    \item \texttt{apply(muestra, 1, ...)}: Aplica una función a cada fila (\texttt{margin=1}) de la matriz \texttt{muestra}. Se usa para transformar cada suceso (fila) en su versión numérica y ordenada.
+    \item \texttt{combn(items, k, simplify = FALSE)}: Genera todas las combinaciones de \texttt{k} elementos tomados del vector \texttt{items}. Es la función clave para generar los subconjuntos de las transacciones (ej. de 1, 2, 3, 4 genera {1 2}, {1 3}, {1 4}, {2 3}, {2 4}, {3 4}).
+    \item \texttt{lapply(transactions\_num, ...)}: Itera sobre cada transacción (ya convertida a números) y aplica la función \texttt{generate\_subsets} (que usa \texttt{combn}) para crear una lista de listas (C2, C3, C4) para cada una.
+    \item \texttt{lapply(transaction\_subsets, ...)}: Itera sobre la lista de subconjuntos de cada transacción (creada en el paso anterior) y usa la función \texttt{build\_tree} (explicada previamente) para crear un árbol C2, C3 y C4 para cada transacción individual.
+\end{itemize}
 
 \subsubsection*{Explicación de la Fase}
 [En esta fase se van a construir los hash trees de cada uno de los sucesos de la muestra para cada una de las dimensiones previas
@@ -1408,33 +1480,6 @@ print(L2_numerico)
 muestra a los valores númericos de la misma forma que se hizo en la fase previa. $2^o$ Una vez se tengan los valores númericos se deben
 crear todas las combinaciones de cada suceso de la muestra para cada una de las dimensiones (L2, L3, L4). $3^o$ Se deben crear
 los hash-trees para cada dimensión a partir de todas las combinaciones posibles creadas.]
-
-\subsubsection*{Prompt de IA Utilizado}
-\begin{quote}
-[okey, so the next step is to transform all the elementos of the sample to the numbers
-following this mapping function, so that as we have done for the candidate
- subsets we can transform the sample into trees of k=2, 3 and 4 dimmensions .
-
-The way of getting the subsets of those dimmensions if basically combining all possible
- ways the values of the sample subsets so that you get subsets of size =2, 3 or 4. 
-Another critical thing is that you need to have the numbers sorted ascendingly so 
-if for example one subset is {2,3,1} it has to be {1,2,3} before it gets transformed 
-to a tree. So with that being said, this is the mapping:
-\begin{verbatim}
-item_map <- c( "Faros de Xenon" = 1, "Control de Velocidad" = 2, "Navegador" = 3,
-"Bluetooth" = 4, "Techo Solar" = 5, "Alarma" = 6 )
-\end{verbatim}
-And this is sample that needs to be transformed first into numbers and then into subsets
-of size = 2, 3 and 4 so that the trees of this samples are created:
-\begin{verbatim}
-muestra <- Matrix(c(1,1,1,1,0,0, 1,1,0,1,1,0, 1,1,1,0,0,0, 1,0,1,1,1,0, 1,1,0,1,0,0, 
-0,0,1,0,0,0, 1,1,0,1,0,0, 0,0,0,0,1,1), nrow = 8, ncol = 6, byrow=TRUE, 
-dimnames = list(c("suceso1", "suceso2", "suceso3", "suceso4", "suceso5", "suceso6", 
-"suceso7", "suceso8"), c("Faros de Xenon", "Control de Velocidad", "Navegador", 
-"Bluetooth", "Techo Solar", "Alarma")),sparse=TRUE).
-\end{verbatim}
-The trees need to be done for every level for every subset of the sample.]
-\end{quote}
 
 \subsubsection*{Código y Ejecución (Sweave)}
 <<Fase4_codigo, echo=TRUE, results=verbatim>>=
@@ -1449,7 +1494,7 @@ L4_candidatos <- Filter(function(x) length(x) == 4, all_candidates)
 
 make_node <- function(item = NULL, is_end = FALSE) {
     # Create a new environment, not a list
-    node <- new.env(parent = emptyenv()) 
+    node <- new.env(parent = emptyenv())
     node$item <- item
     node$children <- list() # We can still use a list to hold the child envs
     node$is_end <- is_end
@@ -1504,7 +1549,7 @@ print_tree <- function(node, depth = 0) {
  
 arbol_L2_candidatos <- build_tree(L2_candidatos)
 arbol_L3_candidatos <- build_tree(L3_candidatos)
-arbol_L4_candidatos <- build_tree(L4_candidatos) 
+arbol_L4_candidatos <- build_tree(L4_candidatos)
 
 print_tree(arbol_L2_candidatos)
 
@@ -1534,37 +1579,73 @@ transaction_subsets <- lapply(transactions_num, function(items) {
 })
  
 all_trees <- lapply(transaction_subsets, function(subs) {
-   list(
+    list(
       tree_C2 = if (length(subs$C2) > 0) build_tree(subs$C2) else NULL,
       tree_C3 = if (length(subs$C3) > 0) build_tree(subs$C3) else NULL,
       tree_C4 = if (length(subs$C4) > 0) build_tree(subs$C4) else NULL
     )
-  }) 
+  })
 print_tree(all_trees$suceso1$tree_C2)
 @
+
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+[okey, so the next step is to transform all the elementos of the sample to the numbers
+following this mapping function, so that as we have done for the candidate
+subsets we can transform the sample into trees of k=2, 3 and 4 dimmensions .
+
+The way of getting the subsets of those dimmensions if basically combining all possible
+ways the values of the sample subsets so that you get subsets of size =2, 3 or 4.
+Another critical thing is that you need to have the numbers sorted ascendingly so
+if for example one subset is {2,3,1} it has to be {1,2,3} before it gets transformed
+to a tree. So with that being said, this is the mapping:
+\begin{verbatim}
+item_map <- c( "Faros de Xenon" = 1, "Control de Velocidad" = 2, "Navegador" = 3,
+"Bluetooth" = 4, "Techo Solar" = 5, "Alarma" = 6 )
+\end{verbatim}
+And this is sample that needs to be transformed first into numbers and then into subsets
+of size = 2, 3 and 4 so that the trees of this samples are created:
+\begin{verbatim}
+muestra <- Matrix(c(1,1,1,1,0,0, 1,1,0,1,1,0, 1,1,1,0,0,0, 1,0,1,1,1,0, 1,1,0,1,0,0,
+0,0,1,0,0,0, 1,1,0,1,0,0, 0,0,0,0,1,1), nrow = 8, ncol = 6, byrow=TRUE,
+dimnames = list(c("suceso1", "suceso2", "suceso3", "suceso4", "suceso5", "suceso6",
+"suceso7", "suceso8"), c("Faros de Xenon", "Control de Velocidad", "Navegador",
+"Bluetooth", "Techo Solar", "Alarma")),sparse=TRUE).
+\end{verbatim}
+The trees need to be done for every level for every subset of the sample.]
+\end{quote}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Fase 5: Conteo sucesos candidatos para analizar la asociación de los que superen el umbral de soporte}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\subsubsection*{Fundamento Teórico}
+Esta es la fase de \textbf{conteo de soporte} (Support Counting). Después de generar candidatos (Lk) y preparar las estructuras de datos, el algoritmo debe determinar cuáles de esos candidatos son realmente ``frecuentes''. Para ello, se ``escanea'' la base de datos (en este caso, los árboles de transacciones) y se cuenta cuántas transacciones ``soportan'' (contienen) a cada itemset candidato.
+Un candidato es soportado por una transacción si el itemset candidato es un subconjunto de los items de esa transacción.
+Al final del conteo, se calcula el soporte relativo de cada candidato (conteo / total de transacciones) y se compara con el umbral de soporte mínimo. Solo los candidatos que igualan o superan el umbral (los \textit{itemsets frecuentes}) se guardan en el conjunto Lk (L2, L3, L4) y se usarán para generar reglas (Fase 6) y para generar los candidatos de la siguiente iteración (Fase 2).
+
+\subsubsection*{Explicación de las funciones utilizadas}
+\begin{itemize}
+    \item \texttt{get\_leaf\_paths(node, current\_path)}: Función recursiva que atraviesa el árbol de candidatos y devuelve una lista de todos los ``caminos'' que terminan en un nodo \texttt{is\_end = TRUE}. Cada camino es un itemset candidato (ej. \texttt{list(c(1, 2), c(1, 3), ...)}).
+    \item \texttt{path\_in\_tree(tree, path)}: Comprueba si un \texttt{path} (un itemset candidato, ej. \texttt{c(1, 3)}) existe dentro de un \texttt{tree} (un árbol de subconjuntos de una transacción). Devuelve \texttt{TRUE} si puede atravesar el árbol siguiendo el camino, \texttt{FALSE} si no.
+    \item \texttt{count\_supports(candidate\_tree,}\\ \texttt{sample\_trees\_by\_level)}: Es la función principal de esta fase.
+        \begin{itemize}
+            \item Primero, llama a \texttt{get\_leaf\_paths} para obtener la lista de todos los candidatos (ej. \texttt{{1, 2}, {1, 3}, ...}).
+            \item Luego, para cada candidato (\texttt{path}), itera sobre todos los árboles de la muestra (\texttt{sample\_trees\_by\_level}).
+            \item \texttt{sapply(...)}: Es un bucle que aplica la función interna a cada suceso (ej. \texttt{suceso1}, \texttt{suceso2}, ...).
+            \item Dentro de \texttt{sapply}, comprueba el tamaño del candidato (\texttt{k}) para seleccionar el árbol de transacciones correcto (tree\_C2, tree\_C3, o tree\_C4).
+            \item Llama a \texttt{path\_in\_tree} para ver si ese candidato existe en el árbol de ese suceso.
+            \item \texttt{sum(sapply(...))}: Suma todos los \texttt{TRUE} (que R trata como 1) y \texttt{FALSE} (0) para obtener el conteo de soporte total de ese candidato.
+        \end{itemize}
+    \item \texttt{data.frame(...)}: Almacena los resultados en un \texttt{data.frame} para una visualización y manejo más fácil.
+    \item \texttt{filter\_by\_threshold(support\_df, threshold, total\_tx)}: Función que toma el \texttt{data.frame} de soportes, calcula la proporción (\texttt{support\_ratio}) y usa \texttt{subset()} para quedarse solo con las filas que cumplen la condición \texttt{support\_ratio >= threshold}.
+\end{itemize}
+
 \subsubsection*{Explicación de la Fase}
-[En esta fase se cuenta el número de veces que aparecen los sucesos candidatos en los árboles de los sucesos de la muestra. Este paso es importante ya 
-que solo aquellos sucesos que superen el umbral de soporte serán considerados en la fase de análisis de asociación. De forma que se contabiliza si el 
+[En esta fase se cuenta el número de veces que aparecen los sucesos candidatos en los árboles de los sucesos de la muestra. Este paso es importante ya
+que solo aquellos sucesos que superen el umbral de soporte serán considerados en la fase de análisis de asociación. De forma que se contabiliza si el
 $n^o$ de veces que aparecen los sucesos candidatos/$n^o$ de sucesos de la muestra es superior o igual al umbral de soporte]
-
-\subsubsection*{Prompt de IA Utilizado}
-\begin{quote}
-[okey great, we can now move on to the next phase which consists on counting 
-how many times do the leafs of the candidates tree in each level appear 
-in each of the sample trees as this values need to be counted in order 
-to see which of the candidates subsets move on to the next phase.
-
-okey, great no that i have the supports for every tree subset, 
-we need to filter by threshold that i have already defined previously 
-support_threshold <- 0.5. The ones that pass the cut will pass on to 
-the next phase.]
-\end{quote}
 
 \subsubsection*{Código y Ejecución (Sweave)}
 <<Fase5_codigo, echo=TRUE, results=verbatim>>=
@@ -1650,27 +1731,59 @@ print("Itemsets Frecuentes L4 (Post-Filtro):")
 print(L4_candidatos_post_arbol)
 @
 
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+[okey great, we can now move on to the next phase which consists on counting
+how many times do the leafs of the candidates tree in each level appear
+in each of the sample trees as this values need to be counted in order
+to see which of the candidates subsets move on to the next phase. Also
+now that i have the supports for every tree subset, we need to filter by
+threshold that i have already defined previously \%support\_threshold <- 0.5\%
+.]
+\end{quote}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Fase 6: Generación de Reglas de Asociación}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Fundamento Teórico}
+Una vez que se han identificado todos los \textit{itemsets frecuentes} (Lk) que superan el umbral de soporte, el siguiente paso es generar \textbf{reglas de asociación} a partir de ellos.
+Por cada itemset frecuente $B$ (ej. {Navegador, Bluetooth}), se generan todas las posibles reglas $A \to (B-A)$, donde $A$ es un subconjunto no vacío de $B$.
+Por ejemplo, del itemset {1, 2, 3} (que es frecuente) se pueden generar las reglas:
+\begin{itemize}
+    \item {1, 2} $\to$ {3}
+    \item {1, 3} $\to$ {2}
+    \item {2, 3} $\to$ {1}
+    \item {1} $\to$ {2, 3}
+    \item {2} $\to$ {1, 3}
+    \item {3} $\to$ {1, 2}
+\end{itemize}
+El número de reglas posibles para un itemset de tamaño $k$ es $2^k - 2$. Esta fase se encarga de generar programáticamente todas estas reglas candidatas. La Fase 7 se encargará de calcular su ``fuerza'' (confianza).
+
+\subsubsection*{Explicación de las funciones utilizadas}
+\begin{itemize}
+    \item \texttt{setNames(names(item\_map), item\_map)}: Crea el mapa inverso (\texttt{item\_map\_rev}), que va de número a nombre (ej. \texttt{item\_map\_rev['1'] = 'Faros de Xenon'}).
+    \item \texttt{generate\_associations(itemset)}: Función personalizada que genera todas las reglas.
+        \begin{itemize}
+            \item \texttt{unlist(lapply(1:(k - 1), ...), recursive = FALSE)}: Un truco para generar todos los subconjuntos. Llama a \texttt{combn} para $i=1, 2, ..., k-1$ y los une todos en una sola lista. Esta lista contiene todos los posibles \texttt{lhs} (antecedentes) de la regla.
+            \item \texttt{setdiff(itemset, lhs)}: Calcula la diferencia de conjuntos. Si \texttt{itemset} es {1, 2, 3} y \texttt{lhs} es {1, 2}, \texttt{rhs} (consecuente) será {3}.
+        \end{itemize}
+    \item \texttt{split\_itemset(s)}: Una función de ayuda para convertir el texto \texttt{'1,2,3'} de vuelta a un vector numérico \texttt{c(1, 2, 3)}.
+    \item \texttt{create\_associations\_from\_L(L\_df)}: La función principal que orquesta la generación de reglas.
+        \begin{itemize}
+            \item Itera sobre cada itemset frecuente en el \texttt{data.frame} \texttt{L\_df}.
+            \item Llama a \texttt{generate\_associations} para obtener la lista de reglas (lhs/rhs numéricos).
+            \item Usa \texttt{lapply} para formatear cada regla, usando el \texttt{item\_map\_rev} para traducir los números de vuelta a texto (ej. \texttt{paste(item\_map\_rev[...])}).
+            \item \texttt{do.call(rbind, all\_associations)}: Coge la lista de \texttt{data.frames} (uno por cada regla) y los apila verticalmente en un solo \texttt{data.frame} grande.
+        \end{itemize}
+\end{itemize}
 
 \subsubsection*{Explicación de la Fase}
 [En esta fase a partir de los sucesos candidatos que superaron el umbral de soporte se van a crear las diversas reglas de asociación
 para cada uno de ellos. Para saber cuantas reglas de asociación se deben crear por cada suceso de cada dimensión, se debe considerar el cálculo de
 $2^K-2$. De forma que si por ejemplo $K=3$, habrá 6 reglás de asociación que se deben crear y analizar. Para la creación de las reglas de asociación
 se debe entender que se forman con la siguiente estructura $A \to B-A$, donde $B$ podría ser $\{Co, Li\}$ y $A$ sería $\{Co\}$ o $\{Li\}$.]
-
-\subsubsection*{Prompt de IA Utilizado}
-\begin{quote}
-[Okay, we can move onto the next phase, no we have to create associations 
-from every level (L2, L3, L4) . The amount of associations that can be 
-created for each subset of each level follows the following formula: $2^k-2$. 
-So for example for every subset of $k=2$, there are two possible associations. 
-
-Before you start creating every association for each subset you have to reverse 
-the numeric values for the words that we previously changed.]
-\end{quote}
 
 \subsubsection*{Código y Ejecución (Sweave)}
 <<Fase6_codigo, echo=TRUE, results=verbatim>>=
@@ -1684,11 +1797,11 @@ generate_associations <- function(itemset) {
  
    all_subsets <- unlist(lapply(1:(k - 1), function(i) combn(itemset, i, simplify = FALSE)), recursive = FALSE)
  
-   for (lhs in all_subsets) {
-     rhs <- setdiff(itemset, lhs)
-     associations <- append(associations, list(list(lhs = lhs, rhs = rhs)))
-   }
-   associations
+    for (lhs in all_subsets) {
+      rhs <- setdiff(itemset, lhs)
+      associations <- append(associations, list(list(lhs = lhs, rhs = rhs)))
+    }
+    associations
 }
 
 # Helper: convert "1,2,3" -> c(1,2,3)
@@ -1727,9 +1840,51 @@ print(associaciones_L3)
 @
 
 
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+[Okay, we can move onto the next phase, no we have to create associations
+from every level (L2, L3, L4) . The amount of associations that can be
+created for each subset of each level follows the following formula: $2^k-2$.
+So for example for every subset of $k=2$, there are two possible associations.
+
+Before you start creating every association for each subset you have to reverse
+the numeric values for the words that we previously changed.]
+\end{quote}
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsubsection{Fase 7: Cálculo de Confianza y Filtrado Final}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsubsection*{Fundamento Teórico}
+El último paso es filtrar las reglas generadas en la Fase 6 para quedarse solo con las ``fuertes''. La métrica más común para esto es la \textbf{confianza} (Confidence).
+La confianza de una regla $A \to B$ mide la probabilidad condicional de que B ocurra dado que A ha ocurrido. Se calcula usando los soportes (conteos) que ya hemos calculado:
+\[
+\text{Confianza}(A \to B) = \frac{\text{Soporte}(A \cup B)}{\text{Soporte}(A)} = \frac{\text{Conteo}(A \cup B)}{\text{Conteo}(A)}
+\]
+Por ejemplo, la confianza de la regla {Navegador} $\to$ {Bluetooth} es:
+\[
+\frac{\text{Conteo}(\{\text{Navegador, Bluetooth}\})}{\text{Conteo}(\{\text{Navegador}\})}
+\]
+El \texttt{Conteo(A U B)} es el soporte del itemset frecuente completo (ej. el soporte de {Navegador, Bluetooth} que se calculó en la Fase 5). El \texttt{Conteo(A)} es el soporte del antecedente (ej. el soporte de {Navegador} que se calculó en la Fase 1 o 5).
+Solo las reglas que superan un umbral de confianza mínimo (en este caso, 0.8) se consideran ``fuertes'' y se presentan como resultado final.
+
+\subsubsection*{Explicación de las funciones utilizadas}
+\begin{itemize}
+    \item \texttt{convert\_numeric\_str\_to\_text\_str(...)}: Función de ayuda para crear la tabla de búsqueda (\texttt{master\_support\_lookup}), convirtiendo itemsets numéricos (``1,3'') a texto (``Faros de Xenon, Navegador'').
+    \item \texttt{soporte\_L1\_map\_df <- data.frame(...)}: Crea un \texttt{data.frame} que sirve como tabla de búsqueda para los soportes de L1 (antecedentes de tamaño 1). Extrae los nombres (\texttt{names(frequency)}) y los conteos (\texttt{as.integer(frequency)}) del vector \texttt{frequency} de la Fase 1.
+    \item \texttt{soporte\_L2\_map\_df <- data.frame(...)} (y \texttt{L3}): Crea tablas de búsqueda similares para L2 y L3. Usa \texttt{sapply} para aplicar la función \texttt{convert\_numeric\_str\_to\_text\_str} a los itemsets numéricos (ej. ``1,3'') y los convierte a texto (ej. ``Faros de Xenon, Navegador''), asociándolos con sus conteos de soporte (\texttt{soporte\_arbol\_L2\$support}).
+    \item \texttt{rbind(soporte\_L1\_map\_df, ...)}: Combina los soportes de L1, L2 y L3 en una sola tabla ``maestra'' (\texttt{master\_support\_lookup}). Esta tabla es crucial, ya que contiene el denominador (\texttt{Soporte(A)}) necesario para calcular la confianza.
+    \item \texttt{na.omit(...)}: Elimina filas con valores \texttt{NA} (nulos) que puedan haber aparecido.
+    \item \texttt{calculate\_and\_filter\_confidence(...)}: Función principal de esta fase.
+        \begin{itemize}
+            \item \texttt{merge(associations\_df, support\_lookup, ...)}: Realiza una operación clave de ``unión'' (como en SQL). Une la tabla de reglas \texttt{associations\_df} con la tabla de soportes \texttt{support\_lookup} usando el antecedente (\texttt{lhs}) como clave. Esto añade eficientemente la columna \texttt{lhs\_support} (el denominador) a la tabla de reglas.
+            \item \texttt{merged\_df\$confidence <- merged\_df\$support / merged\_df\$lhs\_support}: Calcula la confianza dividiendo el soporte del itemset completo (Soporte(A U B)) por el soporte del antecedente (Soporte(A)).
+            \item \texttt{is.nan(merged\_df\$confidence)}: Comprueba si hay divisiones 0/0 (Not a Number) y las convierte a 0.
+            \item \texttt{order(-strong\_rules\$confidence)}: Ordena los resultados de mayor a menor confianza.
+        \end{itemize}
+    \item \texttt{subset(reglas\_fuertes\_L2, confidence >= confidence\_threshold)}: Finalmente, filtra la tabla de reglas para quedarse solo con aquellas que superan el umbral de confianza.
+\end{itemize}
 
 \subsubsection*{Explicación de la Fase}
 [En esta fase final se va a realizar el cálculo de confianza de cada una de las reglas de asociación para así poder sacar conclusiones de la muestra con
@@ -1738,26 +1893,16 @@ Si por ejemplo se tiene que $B=\{Co,Li\}$ y se tiene la siguiente regla de asoci
 contabilizar de la muestra. Aquellas reglas de asociación que superen dicho umbral de confianza, se podrá afirmar con el umbral de confianza que si sucede
 una, la otra también sucede con ese grado de confianza.]
 
-\subsubsection*{Prompt de IA Utilizado}
-\begin{quote}
-[so now we enter the last phase, we need to evaluate the confidence threshold 
-for every association we created. In my case the confidence threshold will be of 
-0.8 can you help me analyze this last phase for all the associations in every 
-level please.
-
-And also, do not incorporate prunning to the code.]
-\end{quote}
-
 \subsubsection*{Código y Ejecución (Sweave)}
 <<Fase7_codigo, echo=TRUE, results=verbatim>>=
 # 7ª FASE ----------------------------------------------------
 confidence_threshold <- 0.8
 
 convert_numeric_str_to_text_str <- function(num_str, map_rev) {
-    nums_numeric <- split_itemset(num_str) 
+    nums_numeric <- split_itemset(num_str)
     nums_char <- as.character(nums_numeric)
     names <- unname(map_rev[nums_char])
-    paste(names, collapse = ", ") 
+    paste(names, collapse = ", ")
 }
 
 soporte_L1_map_df <- data.frame(
@@ -1797,7 +1942,8 @@ calculate_and_filter_confidence <- function(associations_df, support_lookup, thr
     
     merged_df$lhs_support[is.na(merged_df$lhs_support)] <- 0
     
-    merged_df$confidence <- merged_df$support / merged_df$support
+    # Cálculo de la confianza: support(A U B) / support(A)
+    merged_df$confidence <- merged_df$support / merged_df$lhs_support
     
     merged_df$confidence[is.nan(merged_df$confidence)] <- 0
     
@@ -1825,15 +1971,23 @@ print("Reglas Finales L4:")
 print(reglas_finales_L4)
 @
 
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+[so now we enter the last phase, we need to evaluate the confidence threshold
+for every association we created. In my case the confidence threshold will be of
+0.8 can you help me analyze this last phase for all the associations in every
+level please.
+
+And also, do not incorporate prunning to the code.]
+\end{quote}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % FIN DE LAS FASES
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
 
-
-
-
+\newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Ejercicio 2.3: Detección de Datos Anómalos}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
