@@ -1,0 +1,236 @@
+# ==============================================================================
+# MASTER SCRIPT: FUNDAMENTOS DE CIENCIA DE DATOS (PL1)
+# ==============================================================================
+
+# ==============================================================================
+# EJERCICIO 1.1: ANÁLISIS DESCRIPTIVO GUIADO (Satélites de Urano)
+# Usa funciones estándar de R base.
+# ==============================================================================
+cat("\n\n********************************************************************\n")
+cat(" EJERCICIO 1.1: ANÁLISIS DESCRIPTIVO (SATÉLITES URANO)\n")
+cat("********************************************************************\n")
+
+# --- 1. Carga de datos ---
+# Asegúrate de tener 'satelites.txt' en tu directorio de trabajo (setwd)
+# Contenido esperado de satelites.txt:
+# nombre radio
+# Cordelia 13
+# Ofelia 16
+# ...
+s <- read.table("satelites.txt", header = TRUE)
+print(">> Conjunto de datos original:")
+print(s)
+
+# --- 2. Ordenación ---
+# Orden ascendente por radio
+so_asc <- s[order(s$radio), ]
+print(">> Datos ordenados (ascendente) por Radio:")
+print(so_asc)
+
+# Orden descendente por radio
+so_desc <- s[rev(order(s$radio)), ]
+print(">> Datos ordenados (descendente) por Radio:")
+print(so_desc)
+
+# --- 3. Medidas de Dispersión Básicas (Rango) ---
+rango_val <- max(s$radio) - min(s$radio)
+cat("\n>> Rango del radio:", rango_val, "km\n")
+
+# --- 4. Tablas de Frecuencias ---
+frec_abs <- table(s$radio)                # Frecuencia absoluta
+frec_abs_acum <- cumsum(frec_abs)         # Frecuencia absoluta acumulada
+frec_rel <- frec_abs / length(s$radio)    # Frecuencia relativa
+frec_rel_acum <- cumsum(frec_rel)         # Frecuencia relativa acumulada
+
+# Visualización compacta en data frame
+tabla_frec <- data.frame(
+  Radio = names(frec_abs),
+  ni = as.integer(frec_abs),
+  Ni = as.integer(frec_abs_acum),
+  fi = round(as.numeric(frec_rel), 3),
+  Fi = round(as.numeric(frec_rel_acum), 3)
+)
+cat("\n>> Tabla de Frecuencias Completa (Radio):\n")
+print(tabla_frec)
+
+# --- 5. Medidas de Tendencia Central ---
+media_r <- mean(s$radio)
+mediana_r <- median(s$radio)
+
+cat("\n>> Medidas de Tendencia Central:\n")
+cat("   Media:", round(media_r, 2), "km\n")
+cat("   Mediana:", mediana_r, "km\n")
+
+# --- 6. Medidas de Dispersión y Posición ---
+# Nota: var() y sd() en R calculan la versión muestral (n-1)
+var_r <- var(s$radio)
+sd_r <- sd(s$radio)
+# Cuartiles (25%, 50%, 75%)
+cuartiles <- quantile(s$radio, probs = c(0.25, 0.50, 0.75))
+
+cat("\n>> Medidas de Dispersión y Posición:\n")
+cat("   Varianza (muestral):", round(var_r, 2), "\n")
+cat("   Desviación Típica (muestral):", round(sd_r, 2), "km\n")
+cat("   Cuartiles:\n")
+print(cuartiles)
+
+
+# ==============================================================================
+# EJERCICIO 2.4: DETECCIÓN DE OUTLIERS MANUAL (K-NN y LOF)
+# ==============================================================================
+
+# --- 0. Carga de Datos ---
+# Se asume que 'seminarios.txt' está en el directorio de trabajo.
+
+if (!exists("s_bio")) {
+  s_bio <- read.table("seminarios.txt", header = TRUE)
+}
+
+cat(">> Conjunto de datos (Asistencia):\n")
+print(s_bio)
+
+# Preparación común
+datos_m <- as.matrix(s_bio)
+n <- nrow(datos_m)
+
+# ==============================================================================
+# PARTE 1: K-NN MANUAL (Proximidad) 
+# ==============================================================================
+cat("\n\n********************************************************************\n")
+cat(" MÉTODO 1: K-NN MANUAL (Proximidad)\n")
+cat("********************************************************************\n")
+
+# Parámetros
+K_knn <- 3
+UMBRAL_DIST_KNN <- 5
+
+# --- Paso 1: Cálculo Manual Matriz Distancias (Euclídea) ---
+cat("\n[Paso 1] Matriz de Distancias Euclídeas:\n")
+matriz_dist_euclidea <- matrix(0, nrow=n, ncol=n)
+for (i in 1:n) {
+  for (j in 1:n) {
+    # d = sqrt( (x1-x2)^2 + (y1-y2)^2 )
+    matriz_dist_euclidea[i, j] <- sqrt((datos_m[i,1] - datos_m[j,1])^2 + 
+                                       (datos_m[i,2] - datos_m[j,2])^2)
+  }
+}
+print(round(matriz_dist_euclidea, 2))
+
+# --- Paso 2: Análisis de Vecinos y Detección ---
+cat("\n[Paso 2 & 3] Análisis de Vecindad (K =", K_knn, ") y Detección:\n")
+
+for (i in 1:n) {
+  dists_punto <- matriz_dist_euclidea[i, ]
+  orden_vecinos <- order(dists_punto)
+  
+  # Los vecinos reales empiezan en el índice 2 (el 1 es el propio punto)
+  indices_k_vecinos <- orden_vecinos[2:(K_knn + 1)]
+  dist_k_esimo <- dists_punto[orden_vecinos[K_knn + 1]]
+  
+  # Mostrar detalle de los vecinos
+  cat("\n--- Analizando Punto P", i, " ---\n", sep="")
+  # Desglose de los 3 vecinos más cercanos
+  for (k in 1:K_knn) {
+     vecino_idx <- orden_vecinos[k+1]
+     cat("   ", k, "º Vecino más cercano: P", vecino_idx, 
+         " (Distancia: ", round(dists_punto[vecino_idx], 2), ")\n", sep="")
+  }
+  
+  # Decisión final para el punto
+  es_outlier <- dist_k_esimo > UMBRAL_DIST_KNN
+  estado <- if (es_outlier) "-> ¡DETECTADO COMO OUTLIER!" else "-> Normal"
+  
+  cat(">> CONCLUSIÓN P", i, ": Distancia al 3er vecino = ", 
+      round(dist_k_esimo, 2), " ", estado, "\n", sep="")
+}
+
+
+# ==============================================================================
+# PARTE 2: LOF MANUAL (Densidad) 
+# ==============================================================================
+cat("\n\n********************************************************************\n")
+cat(" MÉTODO 2: LOF MANUAL (Densidad)\n")
+cat("********************************************************************\n")
+
+# Parámetros
+K_lof <- 3
+UMBRAL_DRM <- 0.8
+
+# --- Paso Previo: Matriz Distancias Manhattan  ---
+cat("\n[Paso Previo] Recálculo con Distancia Manhattan (para LOF):\n")
+matriz_dist_manhattan <- matrix(0, nrow=n, ncol=n)
+for (i in 1:n) {
+  for (j in 1:n) {
+    # d = |x1-x2| + |y1-y2|
+    matriz_dist_manhattan[i, j] <- abs(datos_m[i,1] - datos_m[j,1]) + 
+                                   abs(datos_m[i,2] - datos_m[j,2])
+  }
+}
+print(matriz_dist_manhattan)
+
+# --- FASE A: Cálculo de Densidades Locales ---
+cat("\n[FASE A] Cálculo de Densidad Local (d) para cada punto:\n")
+cat("Fórmula: d(Pi) = ( Suma_distancias_a_K_vecinos / K )^-1\n\n")
+
+densidad_local <- numeric(n)
+vecinos_indices_lista <- vector("list", n) # Necesario para Fase B
+
+for (i in 1:n) {
+  dists <- matriz_dist_manhattan[i, ]
+  orden <- order(dists)
+  
+  # Identificar los K vecinos
+  mis_vecinos_idx <- orden[2:(K_lof + 1)]
+  vecinos_indices_lista[[i]] <- mis_vecinos_idx
+  
+  # Suma de distancias
+  suma_dist <- sum(dists[mis_vecinos_idx])
+  
+  # Cálculo de densidad
+  densidad_local[i] <- (suma_dist / K_lof)^-1
+  
+  # Salida detallada
+  vecinos_str <- paste("P", mis_vecinos_idx, sep="", collapse=", ")
+  cat("P", i, ": Vecinos {", vecinos_str, "} | Suma Distancias: ", suma_dist,
+      " | Densidad d(P", i, "): ", round(densidad_local[i], 4), "\n", sep="")
+}
+
+# --- FASE B: Cálculo de Densidad Relativa Media (drm) ---
+cat("\n[FASE B] Cálculo de Densidad Relativa Media (drm):\n")
+cat("Fórmula: drm(Pi) = d(Pi) / Media( d(vecinos_de_Pi) )\n\n")
+
+drm_scores <- numeric(n)
+
+for (i in 1:n) {
+  # 1. Densidad propia
+  mi_densidad <- densidad_local[i]
+  
+  # 2. Densidades de mis vecinos (recuperadas de la lista guardada en Fase A)
+  indices_mis_vecinos <- vecinos_indices_lista[[i]]
+  densidades_vecinos <- densidad_local[indices_mis_vecinos]
+  
+  # 3. Media de las densidades de los vecinos
+  media_dens_vecinos <- mean(densidades_vecinos)
+  
+  # 4. Cálculo del drm
+  drm_scores[i] <- mi_densidad / media_dens_vecinos
+  
+  # Salida detallada mostrando la comparación
+  cat("P", i, " -> Mi Densidad: ", round(mi_densidad, 3), 
+      " | Media Dens. Vecinos (P", paste(indices_mis_vecinos, collapse=",P"), 
+      "): ", round(media_dens_vecinos, 3), 
+      " | drm: ", round(drm_scores[i], 4), "\n", sep="")
+}
+
+# --- FASE C: Detección Final ---
+cat("\n[FASE C] Resultados Finales LOF (Umbral drm <", UMBRAL_DRM, "):\n", sep="")
+
+for (i in 1:n) {
+  es_outlier <- drm_scores[i] < UMBRAL_DRM
+  estado <- if (es_outlier) "-> ¡DETECTADO COMO OUTLIER! (Densidad relativa muy baja)" else "-> Normal"
+  cat(sprintf("Punto P%d | drm = %.4f \t%s\n", i, drm_scores[i], estado))
+}
+
+cat("\n********************************************************************\n")
+cat(" FIN DEL ANÁLISIS MANUAL EJERCICIO 2.4\n")
+cat("********************************************************************\n")
