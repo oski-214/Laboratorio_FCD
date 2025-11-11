@@ -123,8 +123,75 @@ asociaciones <- apriori(
 # --- Visualización de las reglas generadas ---
 inspect(asociaciones)
 
+# ==============================================================================
+# EJERCICIO 1.3: DETECCIÓN DE OUTLIERS (CAJA Y BIGOTES, DESVIACIÓN TÍPICA, REGRESIÓN)
+# ==============================================================================
 
+# --------------------------------------------------------------------------
+# CAJA Y BIGOTES
+# --------------------------------------------------------------------------
 
+#Introducimos los datos de la muestra en una matriz
+(muestra<-t(matrix(c(3,2,3.5,12,4.7,4.1,5.2,4.9,7.1,6.1,6.2,5.2,14,5.3),2,7,dimnames=list(c("r", "d")))))
+
+#Se convierte la matriz en un data frame
+(muestra<-data.frame(muestra))
+
+#Devuelve los outliers de la columna resistencia usando el range
+(boxplot(muestra$r, range=1.5, plot=FALSE))
+
+#Si no se quiere emplear la función boxplot, se pueden realizar los cálculos manualmente
+#Se calcula el cuartil primero
+(cuar1r<-quantile(muestra$r, 0.25))
+
+#Se calcula el cuartil tercero
+(cuar3r<-quantile(muestra$r, 0.75))
+
+#Se obtiene una tupla de indices que muestra los límites inferiores y superiores
+(int<-c(cuar1r-1.5*(cuar3r-cuar1r), cuar3r+1.5*(cuar3r-cuar1r)))
+
+#Se observa que valores de la columna resistencia están fuera de los límites cálculados
+for (i in 1:length(muestra$r))
+{if (muestra$r[i]<int[1] || muestra$r[i]>int[2])
+{print("el suceso"); print(i); print(muestra$r[i]); print("es un outlier")}}
+
+# --------------------------------------------------------------------------
+# DESVIACIÓN TÍPICA
+# --------------------------------------------------------------------------
+
+#Se obtiene el valor de sdd, valor que será multiplicado por el grado de outlier para definir los límites
+sdd<-sqrt(var(muestra$d)*((length(muestra$d)-1)/length(muestra$d)))
+
+#Se obtiene una tupla de indices que muestra los límites inferiores y superiores
+(intdes<-c(mean(muestra$d)-2*sdd, mean(muestra$d)+2*sdd))
+
+#Se observa que valores de la columna densidad están fuera de los límites cálculados
+for (i in 1:length(muestra$d))
+{if (muestra$d[i]<intdes[1] ||  muestra$d[i]>intdes[2])
+{print("el suceso"); print(i); print(muestra$d[i]); print("es un outlier")}}
+
+# --------------------------------------------------------------------------
+# REGRESIÓN
+# --------------------------------------------------------------------------
+#Se ajusta un modelo lineal
+(dfr<-lm(muestra$d~muestra$r))
+
+#Se muestra un resumen con elementos estadísticos de dicho modelo lineal
+(summary(dfr))
+
+#Se obtienes los valores predichos 
+(res<-summary(dfr)$residuals)
+
+#Se obtiene el error estandar de los residuos
+sr<-sqrt(sum(res^2)/length(res))
+
+#Se imprime el valor del error estandar de los residuos
+sr
+
+Se itera sobre todos los valores predichos para ver cuales superan el límite de d*sr 
+for (i in 1:length(res))
+{if (res[i]>2*sr)
+{print("el suceso"); print(res[i]); print("es un outlier")}}
 
 # ==============================================================================
 # EJERCICIO 1.4: DETECCIÓN DE OUTLIERS (K-VECINOS Y LOF)
@@ -496,6 +563,475 @@ cat("Varianza poblacional:", varianza_poblacional, "\n")
 cat("Desviación estándar poblacional:", desv_est_poblacional, "\n")
 cat("Varianza muestral:", varianza_muestral, "\n")
 cat("Desviación estándar muestral:", desv_est_muestral, "\n")
+
+# ==============================================================================
+# EJERCICIO 2.2: ASOCIACIONES
+# ==============================================================================
+
+# install.packages("Matrix")
+# install.packages("arules")
+library(Matrix)
+library(arules)
+
+#Se define la muestra
+muestra<-Matrix(c(1,1,1,1,0,0, 1,1,0,1,1,0, 1,1,1,0,0,0, 1,0,1,1,1,0, 1,1,0,1,0,0, 0,0,1,0,0,0, 1,1,0,1,0,0, 0,0,0,0,1,1), 8, 6, byrow=TRUE, dimnames = list(c("suceso1", "suceso2", "suceso3", "suceso4", "suceso5", "suceso6", "suceso7", "suceso8"), c("Faros de Xenon", "Control de Velocidad", "Navegador", "Bluetooth", "Techo Solar", "Alarma")),sparse=TRUE)
+
+#Se transforma el formato de la muestra
+muestrangCMatrix<-as(muestra, "nsparseMatrix")
+# muestrangCMatrix
+
+#Se transpone la muestra
+trapmuestrangCMatrix<-t(muestrangCMatrix)
+# trapmuestrangCMatrix
+
+#Se cambia el formato de la muestra transpuesta
+transacciones<-as(trapmuestrangCMatrix, "transactions")
+# transacciones
+
+#Se muestra un resumen del estado de la muestra
+summary(transacciones)
+
+#1ª FASE ----------------------------------------------------------------------------------------
+
+#Se calcula la frecuencia
+frequency <- itemFrequency(transacciones, type ="absolute")
+# frequency
+
+#Se define el umbra de aceptación de soporte
+support_threshold <- 0.5
+numero_sucesos <-length(transacciones)
+support_sucesos <-frequency/numero_sucesos
+# support_sucesos
+
+#Se filtra los sucesos elementales que superan el umbral de soporte
+elementos_S_validos <- support_sucesos[support_sucesos >= support_threshold]
+# elementos_S_validos
+
+
+#2ªFASE -----------------------------------------------------------------------------------------
+#Se agrupan los sucesos elementales que superaron el umbral de soporte
+L1 <- c("Faros de Xenon", "Control de Velocidad", "Navegador", "Bluetooth")
+# L1
+
+#Se agrupan en una lista 
+L1_lista <- lapply(L1, function(x) c(x))
+
+#función que genera los sucesos candidatos de cada dimensión deseada
+generate_candidates <- function(L_prev) {
+   n <- length(L_prev)
+   if (n <= 1) return(list())     
+   k <- length(L_prev[[1]]) + 1
+   
+   # Que los sucesos candidatos estén ordenados
+   L_prev <- lapply(L_prev, sort)
+   candidates <- list()
+   
+   for (i in seq_len(n - 1)) {         
+     for (j in seq(i + 1, n)) {         
+       b <- L_prev[[j]]
+       
+       
+       if (k - 2 == 0 || all(a[1:(k - 2)] == b[1:(k - 2)])) {
+         new_set <- sort(unique(c(a, b)))
+         if (length(new_set) == k) {
+           candidates <- append(candidates, list(new_set))
+         }
+       }
+     }
+   }
+   
+   # eliminar duplicados (si hay)
+   if (length(candidates) > 0) {
+     candidates <- unique(lapply(candidates, function(x) paste(sort(x), collapse = ",")))
+     candidates <- lapply(candidates, function(x) strsplit(x, ",")[[1]])
+   }
+   return(candidates)
+}
+
+#sucesos candidatos de dimensión 2
+L2<- generate_candidates(L1_lista)
+# L2
+
+#sucesos candidatos de dimensión 3
+L3 <- generate_candidates(L2)
+# L3
+
+#sucesos candidatos de dimensión 4
+L4 <- generate_candidates(L3)
+# L4
+
+
+#3º FASE ----------------------------------------------------------------------------------------------------
+
+#se crea diccionario para cambiar las palabras por números
+item_map <- c(
+   "Faros de Xenon" = 1,
+   "Control de Velocidad" = 2,
+   "Navegador" = 3,
+   "Bluetooth" = 4,
+   "Techo Solar" = 5,
+   "Alarma" = 6
+)
+
+#función que camibia las palabras de los sucesos por números con un orden ascendente los números
+encode_candidates <- function(candidates, mapping) {
+   lapply(candidates, function(subset) {
+     nums <- unname(mapping[subset])     
+     sort(nums)                         
+   })
+}
+
+#Se obtienes los sucesos candidatos codificados
+L2_numerico <- encode_candidates(L2, item_map)
+L3_numerico <- encode_candidates(L3, item_map)
+L4_numerico <- encode_candidates(L4, item_map)
+# L2_numerico
+
+# 4º FASE -----------------------------------------------------------------------------------------------
+
+#Se agrupan todos los candidatos en una lista común
+all_candidates <- c(L2_numerico, L3_numerico, L4_numerico)
+
+#Se agrupan los sucesos candidatos en lista de cada uno con su dimensión
+L2_candidatos <- Filter(function(x) length(x) == 2, all_candidates)
+L3_candidatos <- Filter(function(x) length(x) == 3, all_candidates)
+L4_candidatos <- Filter(function(x) length(x) == 4, all_candidates)
+
+
+#función que crea el nodo árbol de cada suceso candidato para el hash tree
+make_node <- function(item = NULL, is_end = FALSE) {
+   node <- new.env(parent = emptyenv()) 
+   node$item <- item
+   node$children <- list() 
+   node$is_end <- is_end
+   node
+}
+
+
+
+#función que inserta las codificaciones de los sucesos candidatos, colocandolos en la posición correspondiente
+insert_candidate <- function(root, candidate) {
+   current <- root
+   for (it in candidate) {
+     key <- as.character(it)
+     if (!(key %in% names(current$children))) {
+       current$children[[key]] <- make_node(item = it, is_end = FALSE)
+     }
+     current <- current$children[[key]]
+   }
+   current$is_end <- TRUE
+   invisible(NULL)
+}
+
+
+
+#función que inicia el proceso de creación de un hash tree
+build_tree <- function(candidates) {
+   root <- make_node(item = NULL, is_end = FALSE)
+   for (cand in candidates) {
+     insert_candidate(root, cand)
+   }
+   root
+}
+
+
+
+# función para imprimir el hash tree
+print_tree <- function(node, depth = 0) {
+   indent <- paste(rep("  ", depth), collapse = "")
+   if (is.null(node$item)) {
+     cat("(root)\n")
+   } else {
+     cat(indent, "- ", node$item, if (node$is_end) " [end]\n" else "\n", sep = "")
+   }
+   if (length(node$children) > 0) {
+     keys <- as.integer(names(node$children))
+     keys <- sort(keys, na.last = TRUE)
+     for (k in as.character(keys)) {
+       print_tree(node$children[[k]], depth + 1)
+     }
+   }
+}
+
+#Se crean los hash trees de los sucesos candidatos para cada dimensión
+arbol_L2_candidatos <- build_tree(L2_candidatos)
+arbol_L3_candidatos <- build_tree(L3_candidatos)
+arbol_L4_candidatos <- build_tree(L4_candidatos) 
+
+#Se imprime uno de los árboles
+print_tree(arbol_L2_candidatos)
+
+
+
+
+#Se crean los árboles de los conjuntos de la muestra para cada dimensión
+
+#Se transforman los elementos del conjunto de la muestra en su versión númerica y ordenada
+transactions_num <- apply(muestra, 1, function(row) {
+   items <- names(row[row == 1])
+   nums <- unname(item_map[items])
+   sort(nums)
+})
+
+# transactions_num
+
+
+# función que genera todas la combinaciones posibles de un conjunto numérico de la muestra en la dimensión deseada
+generate_subsets <- function(items, k) {
+   if (length(items) < k) return(list())
+   combn(items, k, simplify = FALSE)
+}
+
+#Se crean las combinaciones posibles para cada conjunto de la muestra
+transaction_subsets <- lapply(transactions_num, function(items) {
+   list(
+     C2 = generate_subsets(items, 2),
+     C3 = generate_subsets(items, 3),
+     C4 = generate_subsets(items, 4)
+   )
+})
+
+#Se usa la función build tree sobre cada una de las combinaciones de los sucesos de la muestra
+all_trees <- lapply(transaction_subsets, function(subs) {
+   list(
+     tree_C2 = if (length(subs$C2) > 0) build_tree(subs$C2) else NULL,
+     tree_C3 = if (length(subs$C3) > 0) build_tree(subs$C3) else NULL,
+     tree_C4 = if (length(subs$C4) > 0) build_tree(subs$C4) else NULL
+   )
+})
+
+#Se imprime el árbol de dimensión 2 del suceso 1 de la muestra
+print_tree(all_trees$suceso1$tree_C2)
+
+
+#5º FASE ------------------------------------------------------------------
+
+
+# Función que recoje todos las hojas del árbol para posteriormente poder contar las apariciones
+get_leaf_paths <- function(node, current_path = integer()) {
+   paths <- list()
+   if (!is.null(node$item)) {
+     current_path <- c(current_path, node$item)
+   }
+   if (node$is_end) {
+     paths <- append(paths, list(current_path))
+   }
+   if (length(node$children) > 0) {
+     for (child in node$children) {
+       paths <- append(paths, get_leaf_paths(child, current_path))
+     }
+   }
+   paths
+}
+
+#Se obtienen las hojas del árbol suceso candidato de dimensión 2
+hojas_L2_candidato <- get_leaf_paths(arbol_L2_candidatos)
+# hojas_L2_candidato
+
+#Función que comprueba si existe una de las hojas de los árboles de los sucesos candidatos en un árbol
+path_in_tree <- function(tree, path) {
+   current <- tree
+   for (item in path) {
+     key <- as.character(item)
+     if (!(key %in% names(current$children))) {
+       return(FALSE)
+     }
+     current <- current$children[[key]]
+   }
+   return(TRUE)
+}
+
+
+
+#función que cuenta el número de apariciones de las hojas de los sucesos candidatos en los árboles de la muestra
+count_supports <- function(candidate_tree, sample_trees_by_level) {
+   candidate_paths <- get_leaf_paths(candidate_tree)
+   supports <- numeric(length(candidate_paths))
+   
+   for (i in seq_along(candidate_paths)) {
+     path <- candidate_paths[[i]]
+     supports[i] <- sum(sapply(sample_trees_by_level, function(trees) {
+       tree_level <- NULL
+       k <- length(path)
+       if (k == 2) tree_level <- trees$tree_C2
+       else if (k == 3) tree_level <- trees$tree_C3
+       else if (k == 4) tree_level <- trees$tree_C4
+       if (is.null(tree_level)) return(FALSE)
+       path_in_tree(tree_level, path)
+     }))
+   }
+   
+   data.frame(
+     itemset = sapply(candidate_paths, function(p) paste(p, collapse = ",")),
+     support = supports
+   )
+}
+
+
+#Se obtienen los soportes de cada dimensión de los árboles candidatos
+soporte_arbol_L2 <- count_supports(arbol_L2_candidatos, all_trees)
+soporte_arbol_L3 <- count_supports(arbol_L3_candidatos, all_trees)
+soporte_arbol_L4 <- count_supports(arbol_L4_candidatos, all_trees)
+
+#Se imprimen los soportes de los árboles candidatos
+soporte_arbol_L2
+soporte_arbol_L3
+soporte_arbol_L4
+
+
+
+#función que filtra los sosportes de los árboles que superan el umbral
+filter_by_threshold <- function(support_df, threshold, total_tx) {
+   support_df$support_ratio <- support_df$support / total_tx
+   subset(support_df, support_ratio >= threshold)
+}
+
+#Se obtienen los árboles con los elementos que superan el umbral de soporte
+L2_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L2, support_threshold, numero_sucesos)
+L3_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L3, support_threshold, numero_sucesos)
+L4_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L4, support_threshold, numero_sucesos)
+
+Se imprimen los árboles sucesos candidatos despues de observar cuales superan el soporte
+L2_candidatos_post_arbol
+L3_candidatos_post_arbol
+L4_candidatos_post_arbol
+
+
+
+
+#6ª FASE--------------------------------------------------------------------------------------------------
+#Se revierten los números a palabras
+item_map_rev <- setNames(names(item_map), item_map)
+
+#función que genera las asociaciones posibles para cada suceso candidatos
+generate_associations <- function(itemset) {
+ k <- length(itemset)
+   associations <- list()
+   if (k < 2) return(associations)
+ 
+   all_subsets <- unlist(lapply(1:(k - 1), function(i) combn(itemset, i, simplify = FALSE)), recursive = FALSE)
+ 
+   for (lhs in all_subsets) {
+     rhs <- setdiff(itemset, lhs)
+     associations <- append(associations, list(list(lhs = lhs, rhs = rhs)))
+   }
+   associations
+}
+
+#convierte el texto a un vector numérico
+split_itemset <- function(s) as.integer(unlist(strsplit(s, ",")))
+
+#función que orquesta todo el proceso de creación de las asociaciones
+create_associations_from_L <- function(L_df) {
+ if (nrow(L_df) == 0) return(data.frame())
+   
+   all_associations <- list()
+   for (i in seq_len(nrow(L_df))) {
+     itemset <- split_itemset(L_df$itemset[i])
+     associations <- generate_associations(itemset)
+     all_associations <- append(all_associations, lapply(associations, function(r) {
+       data.frame(
+         lhs = paste(item_map_rev[as.character(sort(r$lhs))], collapse = ", "),
+         rhs = paste(item_map_rev[as.character(sort(r$rhs))], collapse = ", "),
+         k = length(itemset),
+         support = L_df$support[i],
+         support_ratio = L_df$support_ratio[i],
+         stringsAsFactors = FALSE
+       )
+     }))
+   }
+   do.call(rbind, all_associations)
+}
+
+#Se crean las asociaciones
+associaciones_L2 <- create_associations_from_L(L2_candidatos_post_arbol)
+associaciones_L3 <- create_associations_from_L(L3_candidatos_post_arbol)
+associaciones_L4 <- create_associations_from_L(L4_candidatos_post_arbol)
+
+#Se imprimen las asociaciones creadas para la dimensión 2
+associaciones_L2
+
+
+#7ª FASE -----------------------------------------------------------------------------------
+
+#Se define el umbral de confianza
+confidence_threshold <- 0.8
+
+#función que ayuda a crear la tabla de búsqueda convirtiendo los números a palabras
+convert_numeric_str_to_text_str <- function(num_str, map_rev) {
+   nums_numeric <- split_itemset(num_str) 
+   nums_char <- as.character(nums_numeric)
+   names <- unname(map_rev[nums_char])
+   paste(names, collapse = ", ") 
+}
+
+#Se crea data frame para usarlo de búsqueda para la dimensión 1
+soporte_L1_map_df <- data.frame(
+   lhs_str = names(frequency),
+   lhs_support = as.integer(frequency),
+   stringsAsFactors = FALSE
+)
+
+#Se crea data frame para usarlo de búsqueda para la dimensión 2
+soporte_L2_map_df <- data.frame(
+   lhs_str = sapply(soporte_arbol_L2$itemset, convert_numeric_str_to_text_str, map_rev = item_map_rev),
+   lhs_support = soporte_arbol_L2$support,
+   stringsAsFactors = FALSE
+)
+#Se crea data frame para usarlo de búsqueda para la dimensión 3
+soporte_L3_map_df <- data.frame(
+   lhs_str = sapply(soporte_arbol_L3$itemset, convert_numeric_str_to_text_str, map_rev = item_map_rev),
+   lhs_support = soporte_arbol_L3$support,
+   stringsAsFactors = FALSE
+)
+
+#Se combinan tosas las anteriores en una sola tabla maestra
+master_support_lookup <- rbind(soporte_L1_map_df, soporte_L2_map_df, soporte_L3_map_df)
+master_support_lookup <- na.omit(master_support_lookup)
+
+
+#Función que devuelve los valores de confianza para cada regla de asociación
+calculate_and_filter_confidence <- function(associations_df, support_lookup, threshold) {
+   if (nrow(associations_df) == 0) {
+     return(data.frame(
+       lhs = character(),
+       rhs = character(),
+       k = integer(),
+       support_ratio = numeric(),
+       confidence = numeric(),
+       stringsAsFactors = FALSE
+     ))
+   }
+   
+   merged_df <- merge(associations_df, support_lookup, by.x = "lhs", by.y = "lhs_str", all.x = TRUE)
+   
+   merged_df$lhs_support[is.na(merged_df$lhs_support)] <- 0
+   
+   merged_df$confidence <- merged_df$support / merged_df$lhs_support
+   
+   merged_df$confidence[is.nan(merged_df$confidence)] <- 0
+   
+   strong_rules <- merged_df[, c("lhs", "rhs", "k", "support_ratio", "confidence")]
+  
+   strong_rules[order(-strong_rules$confidence), ]
+}
+
+#Se obtienen las asociaciones con las confianzas
+reglas_fuertes_L2 <- calculate_and_filter_confidence(associaciones_L2, master_support_lookup, confidence_threshold)
+reglas_fuertes_L3 <- calculate_and_filter_confidence(associaciones_L3, master_support_lookup, confidence_threshold)
+reglas_fuertes_L4 <- calculate_and_filter_confidence(associaciones_L4, master_support_lookup, confidence_threshold)
+
+
+# Filtrado final, se obtienen las reglas de asociación que superan el umbral de confianza
+reglas_finales_L2 <- subset(reglas_fuertes_L2, confidence >= confidence_threshold)
+reglas_finales_L3 <- subset(reglas_fuertes_L3, confidence >= confidence_threshold)
+reglas_finales_L4 <- subset(reglas_fuertes_L4, confidence >= confidence_threshold)
+
+print("--- Reglas que superan el umbral de confianza (0.8) ---")
+print(reglas_finales_L2)
+print(reglas_finales_L3)
+print(reglas_finales_L4)
+
 
 
 # ==============================================================================

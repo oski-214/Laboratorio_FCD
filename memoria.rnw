@@ -1364,20 +1364,20 @@ L1_lista <- lapply(L1, function(x) c(x))
 
 generate_candidates <- function(L_prev) {
     n <- length(L_prev)
-    if (n <= 1) return(list())     # nothing to join
+    if (n <= 1) return(list())     
     
-    k <- length(L_prev[[1]]) + 1     # target candidate size
+    k <- length(L_prev[[1]]) + 1     
     
     # make sure items inside each subset are sorted
     L_prev <- lapply(L_prev, sort)
     candidates <- list()
     
-    for (i in seq_len(n - 1)) {         # iterate all but last
-      for (j in seq(i + 1, n)) {         # compare with following sets
+    for (i in seq_len(n - 1)) {         
+      for (j in seq(i + 1, n)) {         
         a <- L_prev[[i]]
         b <- L_prev[[j]]
         
-        # join rule: all first (k-2) items identical
+        
         if (k - 2 == 0 || all(a[1:(k - 2)] == b[1:(k - 2)])) {
           new_set <- sort(unique(c(a, b)))
           if (length(new_set) == k) {
@@ -1387,7 +1387,7 @@ generate_candidates <- function(L_prev) {
       }
     }
     
-    # remove duplicates (if any)
+    # eliminar duplicados (si hay)
     if (length(candidates) > 0) {
       candidates <- unique(lapply(candidates, function(x) paste(sort(x), collapse = ",")))
       candidates <- lapply(candidates, function(x) strsplit(x, ",")[[1]])
@@ -1473,7 +1473,7 @@ item_map <- c(
 
 encode_candidates <- function(candidates, mapping) {
     lapply(candidates, function(subset) {
-      nums <- unname(mapping[subset])     # map words → numbers
+      nums <- unname(mapping[subset])     
       sort(nums)
     })
 }
@@ -1539,26 +1539,22 @@ L4_candidatos <- Filter(function(x) length(x) == 4, all_candidates)
 
 
 make_node <- function(item = NULL, is_end = FALSE) {
-    # Create a new environment, not a list
     node <- new.env(parent = emptyenv())
     node$item <- item
-    node$children <- list() # We can still use a list to hold the child envs
+    node$children <- list() 
     node$is_end <- is_end
-    node # Return the environment
+    node 
 }
 
 insert_candidate <- function(root, candidate) {
     current <- root
     for (it in candidate) {
       key <- as.character(it)
-      # create child if it doesn't exist
       if (!(key %in% names(current$children))) {
         current$children[[key]] <- make_node(item = it, is_end = FALSE)
       }
-      # move to the child node
       current <- current$children[[key]]
     }
-    # mark end of candidate
     current$is_end <- TRUE
     invisible(NULL)
 }
@@ -1582,7 +1578,6 @@ print_tree <- function(node, depth = 0) {
     } else {
       cat(indent, "- ", node$item, if (node$is_end) " [end]\n" else "\n", sep = "")
     }
-    # iterate children in numeric order of keys
     if (length(node$children) > 0) {
       keys <- as.integer(names(node$children))
       keys <- sort(keys, na.last = TRUE)
@@ -1600,7 +1595,7 @@ arbol_L4_candidatos <- build_tree(L4_candidatos)
 print_tree(arbol_L2_candidatos)
 
 
-# for the sample trees
+# para los árboles de la muestra
 
 transactions_num <- apply(muestra, 1, function(row) {
     items <- names(row[row == 1])
@@ -1609,7 +1604,6 @@ transactions_num <- apply(muestra, 1, function(row) {
 })
 
 
-# Function to generate subsets of a given size k
 generate_subsets <- function(items, k) {
     if (length(items) < k) return(list())
     combn(items, k, simplify = FALSE)
@@ -1849,7 +1843,6 @@ generate_associations <- function(itemset) {
     associations
 }
 
-# Helper: convert "1,2,3" -> c(1,2,3)
 split_itemset <- function(s) as.integer(unlist(strsplit(s, ",")))
 
 create_associations_from_L <- function(L_df) {
