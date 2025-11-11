@@ -499,54 +499,6 @@ cat("Desviación estándar muestral:", desv_est_muestral, "\n")
 
 
 # ==============================================================================
-# EJERCICIO 1.2: Análisis de asociación.
-# ==============================================================================
-
-# --- Carga del paquete arules (instalar si es necesario) ---
-# install.packages("arules")  # Descomentar si no está instalado
-library(arules)
-
-# --- Creación de la matriz binaria de cestas de compra ---
-muestra <- Matrix(
-  c(1,1,0,1,1,
-    1,1,1,1,0,
-    1,1,0,1,0,
-    1,0,1,1,0,
-    1,1,0,0,0,
-    0,0,0,1,0),
-  nrow = 6, ncol = 5, byrow = TRUE,
-  dimnames = list(
-    c("suceso1","suceso2","suceso3","suceso4","suceso5","suceso6"),
-    c("Pan","Agua","Cafe","Leche","Naranja")
-  ),
-  sparse = TRUE
-)
-
-# --- Conversión a matriz lógica y transposición ---
-muestrangCMatrix <- as(muestra, "nsparseMatrix")
-traspmuestrangCMatrix <- t(muestrangCMatrix)
-
-# --- Conversión final al formato transactions ---
-transacciones <- as(traspmuestrangCMatrix, "transactions")
-
-# --- Resumen de las transacciones ---
-summary(transacciones)
-
-# --- Aplicación del algoritmo Apriori ---
-asociaciones <- apriori(
-  transacciones,
-  parameter = list(
-    support = 0.5,       # soporte mínimo 50%
-    confidence = 0.8     # confianza mínima 80%
-  )
-)
-
-# --- Visualización de las reglas generadas ---
-inspect(asociaciones)
-
-
-
-# ==============================================================================
 # EJERCICIO 2.3: Análisis de detección de datos anómalos utilizando técnicas con base estadística.
 # ==============================================================================
 

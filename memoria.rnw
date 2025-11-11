@@ -2116,15 +2116,6 @@ bucle \texttt{for}, se recorrió cada elemento del vector y se comparó con los 
 y no devuelve ningún valor formal, sino que imprime en la consola los resultados. En los datos analizados, no se detectaron valores atípicos en la variable \texttt{Velocidad}, 
 puesto que todas las observaciones quedaron dentro del intervalo definido por los límites del IQR.
 
-\subsubsection*{Prompt de IA Utilizado}
-
-\begin{quote}
-[I have the following dataset of Speed values: {10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5}. I want you to apply the box-and-whisker outlier detection method. To do this, follow these steps: 
-sort the data, calculate the first and third quartiles, compute the interquartile range (IQR) using the formula provided earlier, determine the detection limits, and finally indicate which
- of the original Speed values fall outside this interval. You are not allowed to use: matrix, boxplot, quantile, length, mean, or sd.]
-\end{quote}
-
-
 
 <<ordenacion_velocidad, echo=TRUE, results=verbatim>>=
 # Método IQR manual
@@ -2153,6 +2144,13 @@ detectar_outliers_iqr <- function(x) {
 }
 @
 
+\subsubsection*{Prompt de IA Utilizado}
+
+\begin{quote}
+[I have the following dataset of Speed values: {10, 8, 13, 9, 11, 14, 6, 4, 12, 7, 5}. I want you to apply the box-and-whisker outlier detection method. To do this, follow these steps: 
+sort the data, calculate the first and third quartiles, compute the interquartile range (IQR) using the formula provided earlier, determine the detection limits, and finally indicate which
+ of the original Speed values fall outside this interval. You are not allowed to use: matrix, boxplot, quantile, length, mean, or sd.]
+\end{quote}
 
 
 \subsubsection{Medidas de dispersión (Temperatura), Método Desviación Típica}
@@ -2167,16 +2165,6 @@ desviación. La salida consiste en un mensaje por consola indicando si se han en
 En la práctica, al aplicar esta función sobre la variable \texttt{Temperatura}, se detectó un único valor atípico correspondiente a la observación con valor 12.74, 
 ya que sobrepasaba claramente el límite superior establecido por el criterio de dos desviaciones típicas respecto a la media.
 
-
-\subsubsection*{Prompt de IA Utilizado}
-\begin{quote}
-[Now you have to do the same as before but with different data and another method. Analyze the following Temperature dataset: 
-{7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73}. I want you to identify outliers using the standard deviation method. 
-It is important to follow this procedure: calculate the arithmetic mean of all values; compute the standard deviation; then apply the 
-outlier detection rule using the formulas: lower limit = mean(x) - d × standard deviation, and upper limit = mean(x) + d × standard deviation. 
-The code must check the data and indicate which values are outliers because they do not meet this condition. You are not allowed to use: lm, summary, 
-or length.]
-\end{quote}
 
 <<dispersión_temperatura, echo=TRUE, results=verbatim>>=
 # Método de la desviación típica manual
@@ -2205,6 +2193,16 @@ detectar_outliers_sd <- function(x, d = 2) {
 }
 @
 
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+[Now you have to do the same as before but with different data and another method. Analyze the following Temperature dataset: 
+{7.46, 6.77, 12.74, 7.11, 7.81, 8.84, 6.08, 5.39, 8.15, 6.42, 5.73}. I want you to identify outliers using the standard deviation method. 
+It is important to follow this procedure: calculate the arithmetic mean of all values; compute the standard deviation; then apply the 
+outlier detection rule using the formulas: lower limit = mean(x) - d × standard deviation, and upper limit = mean(x) + d × standard deviation. 
+The code must check the data and indicate which values are outliers because they do not meet this condition. You are not allowed to use: lm, summary, 
+or length.]
+\end{quote}
+
 \subsubsection{Detección por regresión lineal}
 
 Finalmente, se utilizó un enfoque basado en regresión lineal entre \texttt{Velocidad} (variable independiente) y \texttt{Temperatura} (variable dependiente).  
@@ -2216,13 +2214,6 @@ y recorre las observaciones comparando cada residuo con el umbral \(d \cdot s_r\
 En este conjunto de datos, la ecuación de regresión obtenida fue \(\hat{y} = 3.0025 + 0.4997 \cdot x\) y el error estándar de los residuos fue \(s_r = 1.1183\). Al aplicar el criterio de outlier (\(|r_i| > 2 \cdot s_r\)), se detectó un valor atípico correspondiente al índice 3, con residuo \(r_3 = 3.2411\),
 el cual excede el umbral de \(2 \cdot s_r\). Por tanto, este punto se considera un outlier según el análisis por residuos de regresión.
 
-
-\subsubsection*{Prompt de IA Utilizado}
-
-\begin{quote}
-[Final exercise. We take the 11 pairs of data {Speed, Temperature}: {10, 7.46; 8, 6.77; 13, 12.74; 9, 7.11; 11, 7.81; 14, 8.84; 6, 6.08; 4, 5.39; 12, 8.15; 7, 6.42; 5, 5.73}. Perform an outlier analysis based on regression residuals, where Speed is the independent variable and Temperature is the dependent variable.
-Please follow these steps manually, without using functions such as lm or summary: first, calculate the mean of Speed and Temperature; then obtain the linear regression coefficients a and b (b = Sxy / Sx²). For each of the 11 points, compute its residual and the standard deviation of the residuals. Finally, the code must indicate which points are outliers according to the condition |yi - ŷi| > d × sr”]
-\end{quote}
 
 <<regresion_outliers, echo=TRUE, results=verbatim>>=
 # Método de regresión manual con detección por residuos
@@ -2270,6 +2261,13 @@ detectar_outliers_regresion <- function(x, y, d = 2) {
 }
 
 @
+
+\subsubsection*{Prompt de IA Utilizado}
+
+\begin{quote}
+[Final exercise. We take the 11 pairs of data {Speed, Temperature}: {10, 7.46; 8, 6.77; 13, 12.74; 9, 7.11; 11, 7.81; 14, 8.84; 6, 6.08; 4, 5.39; 12, 8.15; 7, 6.42; 5, 5.73}. Perform an outlier analysis based on regression residuals, where Speed is the independent variable and Temperature is the dependent variable.
+Please follow these steps manually, without using functions such as lm or summary: first, calculate the mean of Speed and Temperature; then obtain the linear regression coefficients a and b (b = Sxy / Sx²). For each of the 11 points, compute its residual and the standard deviation of the residuals. Finally, the code must indicate which points are outliers according to the condition |yi - ŷi| > d × sr”]
+\end{quote}
 
 \subsubsection{Aplicación de los métodos}
 
