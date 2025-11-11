@@ -2102,10 +2102,13 @@ desviacion_manual <- function(x) {
 
 El primer método utilizado para la detección de valores atípicos se basa en el rango intercuartílico (IQR). Este enfoque utiliza medidas de posición,
 calculando los cuartiles primero (\(Q_1\) y \(Q_3\)) y el rango intercuartílico como la diferencia \(IQR = Q_3 - Q_1\). Un dato se considera atípico si está por debajo
-del límite inferior \(Q_1 - 1.5 \cdot IQR\) o por encima del límite superior \(Q_3 + 1.5 \cdot IQR\). En la implementación, se aprovechó la función \texttt{fivenum(x)},
-para obtener los cinco números resumen. A partir de ellos, se calcularon los límites inferior y superior del rango aceptable. Posteriormente, mediante un 
-bucle \texttt{for}, se recorrió cada elemento del vector y se comparó con los límites obtenidos. Cuando un valor excedía dichos límites, se imprimía por pantalla el 
-índice y el valor detectado como atípico. Esta lógica se encapsuló en la función \texttt{detectar\_outliers\_iqr(x)}. Dicha función recibe un vector numérico como argumento
+del límite inferior \(Q_1 - 1.5 \cdot IQR\) o por encima del límite superior \(Q_3 + 1.5 \cdot IQR\). 
+En la implementación, se aprovechó la función \texttt{fivenum(x)}, que devuelve los cinco números resumen de un conjunto de datos: el valor mínimo, el primer cuartil (Q1), 
+la mediana (Q2), el tercer cuartil (Q3) y el valor maximo. Estos numeros resumen permiten calcular de manera sencilla el rango intercuartílico y establecer los límites que definen los posibles outliers.
+Posteriormente, mediante un bucle \texttt{for}, se recorrió cada elemento del vector iterando directamente sobre los valores del vector. El índice (i) se gestiona de forma manual
+(iniciando en i <- 1 y sumando i <- i + 1 en cada ciclo), con el único fin de poder reportar la posición del outlier. Cada elemento del vector se campara con los límetes obtenidos.
+Cuando un valor excedía dichos límites, se imprimía por pantalla el índice y el valor detectado como atípico. 
+Esta lógica se encapsuló en la función \texttt{detectar\_outliers\_iqr(x)}. Dicha función recibe un vector numérico como argumento
 y no devuelve ningún valor formal, sino que imprime en la consola los resultados. En los datos analizados, no se detectaron valores atípicos en la variable \texttt{Velocidad}, 
 puesto que todas las observaciones quedaron dentro del intervalo definido por los límites del IQR.
 
@@ -2152,8 +2155,9 @@ El segundo método asume una distribución aproximadamente normal de los datos y
 Un valor se considera atípico si se encuentra fuera del intervalo \([\bar{x} - d \cdot s, \bar{x} + d \cdot s]\), donde \(s\) es la desviación típica y \(d\) es un multiplicador 
 elegido (en este caso \(d=2\)). 
 Para implementarlo, se calculó la media y la desviación típica mediante las funciones \texttt{media\_manual(x)} y \texttt{desviacion\_manual(x)} previamente definidas.
-Luego, se obtuvieron los límites inferior y superior, y se recorrió el vector de \texttt{Temperatura} en un bucle, imprimiendo por pantalla los valores que se situaban
-fuera del rango aceptado. La función desarrollada para ello, \texttt{detectar\_outliers\_sd(x, d)}, acepta como argumentos el vector de datos y el multiplicador de 
+Luego, se obtuvieron los límites inferior y superior, y se recorrió el vector de \texttt{Temperatura} en un bucle iterando directamente sobre sus valores, imprimiendo por pantalla los valores que se situaban
+fuera del rango aceptado. Se gestiona un contador de índice (i) de forma manual e interna, únicamente para poder reportar la posición del outlier si se encuentra.
+Toda la lógica se encapsuló en la función \texttt{detectar\_outliers\_sd(x, d)} que acepta como argumentos el vector de datos y el multiplicador de 
 desviación. La salida consiste en un mensaje por consola indicando si se han encontrado o no observaciones anómalas.
 En la práctica, al aplicar esta función sobre la variable \texttt{Temperatura}, se detectó un único valor atípico correspondiente a la observación con valor 12.74, 
 ya que sobrepasaba claramente el límite superior establecido por el criterio de dos desviaciones típicas respecto a la media.
