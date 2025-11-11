@@ -1086,7 +1086,9 @@ desviacion_manual <- function(x) {
 
 #FUNCIONES PARA CADA MÉTODO.
 
-
+# --------------------------------------------------------------------------
+# CAJA Y BIGOTES
+# --------------------------------------------------------------------------
 # Método IQR manual
 
 detectar_outliers_iqr <- function(x) {
@@ -1113,7 +1115,9 @@ detectar_outliers_iqr <- function(x) {
   if (!hay_outliers) cat("No se detectaron outliers.\n")
 }
 
-
+# --------------------------------------------------------------------------
+# DESVIACIÓN TÍPICA
+# --------------------------------------------------------------------------
 # Método de la desviación típica manual
 
 detectar_outliers_sd <- function(x, d = 2) {
@@ -1140,7 +1144,9 @@ detectar_outliers_sd <- function(x, d = 2) {
   if (!hay_outliers) cat("No se detectaron outliers.\n")
 }
 
-
+# --------------------------------------------------------------------------
+# REGRESIÓN
+# --------------------------------------------------------------------------
 # Método de regresión manual con detección por residuos
 
 detectar_outliers_regresion <- function(x, y, d = 2) {
