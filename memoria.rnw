@@ -1,5 +1,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% PREÁMBULO DE LATEX (Igual que antes)
+% PREÁMBULO DE LATEX
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \documentclass[a4paper]{article}
 
@@ -7,7 +7,7 @@
 \usepackage[utf8]{inputenc} % Codificación de entrada
 \usepackage[T1]{fontenc}    % Codificación de fuentes
 \usepackage[spanish]{babel} % Idioma español
-\usepackage{graphicx}       % Para insertar imágenes (tus capturas)
+\usepackage{graphicx}       % Para insertar imágenes
 \usepackage[a4paper,margin=2.5cm]{geometry} % Márgenes
 \usepackage{Sweave}         % Estilos para Sweave
 
@@ -33,6 +33,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
+
 % --- Portada ---
 \begin{titlepage}
     \centering
@@ -41,11 +42,12 @@
     {\Large Escuela Politécnica Superior \\[1cm]}
     {\Huge \textbf{Fundamentos de la Ciencia de Datos} \\[1.5cm]}
     \Large\textbf{Autor:} \\[0.3cm]
-    {\Large Tu Nombre \\[2cm]}
+    {\Large Oscar Morán, Asier Álamo, Edgar Alexis Conforme, Lucía Díaz \\[2cm]}
     \textbf{Fecha:} \\[0.3cm]
     {\Large \today} \\[1.5cm]
     \vspace*{\fill}
 \end{titlepage}
+
 
 \newpage
 \tableofcontents % Tabla de contenido automática
@@ -68,17 +70,17 @@ A continuación, se detallan los ejercicios resueltos.
 \subsection{Ejercicio 1.1: Análisis Descriptivo (Satélites de Urano)}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Este primer ejercicio consiste en un análisis descriptivo guiado. Su propósito principal es asentar las bases del manejo de datos en R, utilizando las funciones estadísticas estándar que ofrece el lenguaje para caracterizar un conjunto de datos unidimensional.
+Este primer ejercicio consiste en la explicacion de un análisis descriptivo guiado por el profesor. Su propósito principal es asentar las bases del manejo de datos en R, utilizando las funciones estadísticas estándar que ofrece el lenguaje para caracterizar un conjunto de datos unidimensional.
 
-\subsubsection{1. Descripción del conjunto de datos}
-Los datos objeto de estudio corresponden a características físicas de los satélites menores del planeta Urano (aquellos con un radio inferior a 50 km). El conjunto de datos contiene 12 observaciones y dos variables:
+\subsubsection{Descripción del conjunto de datos}
+Los datos objeto de estudio corresponden a características físicas de los satélites menores del planeta Urano . El conjunto de datos contiene 12 observaciones y dos variables:
 \begin{itemize}
     \item \textbf{Nombre:} Variable cualitativa nominal que identifica a cada satélite (ej. \textit{Cordelia}, \textit{Ofelia}).
     \item \textbf{radio:} Variable cuantitativa continua que representa el radio medio del satélite en kilómetros.
 \end{itemize}
 La información se encuentra almacenada en un fichero de texto plano denominado \texttt{satelites.txt}, estructurado en formato tabular con cabecera.
 
-\subsubsection{2. Funciones de R utilizadas}
+\subsubsection{Funciones de R utilizadas}
 Para realizar este análisis descriptivo se emplean funciones base de R. De acuerdo con los criterios de evaluación, a continuación se detalla su funcionalidad y los argumentos clave empleados:
 
 \begin{itemize}
@@ -109,13 +111,10 @@ Para realizar este análisis descriptivo se emplean funciones base de R. De acue
     \item \textbf{\texttt{max(x)}} y \textbf{\texttt{min(x)}}: Devuelven los valores extremos del vector, esenciales para determinar el rango o recorrido de la variable.
 \end{itemize}
 
-\subsubsection{3. Implementación del Análisis en R}
+\subsubsection{Implementación del Análisis en R}
 A continuación se presenta el código completo y comentado que ejecuta el análisis descriptivo sobre la variable \textit{radio}.
 
 <<ejercicio1_1_analisis_completo, echo=TRUE, results=verbatim>>=
-# ==============================================================================
-# EJERCICIO 1.1: ANÁLISIS DESCRIPTIVO (Satélites de Urano)
-# ==============================================================================
 
 # --- 1. Carga y verificación de datos ---
 # Leemos el fichero asumiendo que está en el directorio de trabajo actual.
@@ -195,6 +194,13 @@ cat("Cuartiles (Q1, Q2, Q3):\n")
 print(cuartiles)
 @
 
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+I am tasked with performing the guided descriptive analysis for Exercise 1.1, as outlined in the lab PDF. The data source is the \texttt{satelites.txt} file, which includes 'nombre' (a qualitative variable) and 'radio' (a quantitative variable) for Urano's satellites.
+I require a comprehensive R script that utilizes the standard, built-in R functions to conduct this analysis.
+The script must demonstrate the correct application of functions such as \texttt{read.table()} for data loading, \texttt{order()} and \texttt{rev()} for data sorting, and \texttt{table()} combined with \texttt{cumsum()} and \texttt{length()} for generating the complete absolute, relative, and cumulative frequency tables.
+Furthermore, the script must conclude by calculating and printing all required statistical summaries for the 'radio' variable, including the \texttt{mean()}, \texttt{median()}, \texttt{var()}, \texttt{sd()}, and the primary quartiles using \texttt{quantile()}.
+\end{quote}
 \newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Ejercicio 1.2: Análisis de asociación}
@@ -1690,7 +1696,6 @@ $n^o$ de veces que aparecen los sucesos candidatos/$n^o$ de sucesos de la muestr
 \subsubsection*{Código y Ejecución (Sweave)}
 <<Fase5_codigo, echo=TRUE, results=verbatim>>=
 # 5º FASE ----------------------------------------------------
-# (Incluimos las funciones de la Fase 4 que se necesitan aquí)
 
 
 get_leaf_paths <- function(node, current_path = integer()) {
@@ -1989,7 +1994,7 @@ calculate_and_filter_confidence <- function(associations_df, support_lookup, thr
     
     strong_rules <- merged_df[, c("lhs", "rhs", "k", "support_ratio", "confidence")]
     
-    # Modificado: No filtrar por threshold aquí, solo ordenar
+
     strong_rules[order(-strong_rules$confidence), ]
 }
 
@@ -2288,7 +2293,7 @@ detectar_outliers_regresion(datos$Velocidad, datos$Temperatura)
 \subsection{Ejercicio 2.4: Detección de datos anómalos (Proximidad y Densidad Manual)}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-En este ejercicio se aborda la detección de datos anómalos utilizando dos enfoques diferentes: proximidad (K-NN) y densidad (LOF). Para cumplir con el requisito de trabajo autónomo y profundizar en los fundamentos teóricos, ambos algoritmos se implementarán de forma \textbf{manual}, sin recurrir a paquetes específicos de R para la detección de \textit{outliers}.
+En este ejercicio se aborda la detección de datos anómalos utilizando dos enfoques diferentes: proximidad (K-NN) y densidad (LOF). Para cumplir con el requisito de trabajo propio(y no guiado por el profesor) y profundizar en los fundamentos teóricos, ambos algoritmos se implementarán de forma \textbf{manual}, sin recurrir a paquetes específicos de R para la detección de \textit{outliers}.
 
 \subsubsection{1. Descripción del conjunto de datos}
 El conjunto de datos objeto de estudio contiene información sobre la asistencia a cinco seminarios de biología. Consta de $N=5$ observaciones y dos variables cuantitativas discretas:
@@ -2298,7 +2303,7 @@ El conjunto de datos objeto de estudio contiene información sobre la asistencia
 \end{itemize}
 Los datos se encuentran almacenados en el fichero de texto plano \texttt{seminarios.txt}.
 
-\subsubsection{2. Funciones de R utilizadas en la exploración inicial}
+\subsubsection{Funciones de R utilizadas en la exploración inicial}
 Para la carga y visualización preliminar de los datos se han utilizado las siguientes funciones base de R. Se detallan sus argumentos clave para justificar su uso en la creación de gráficos informativos:
 
 \begin{itemize}
@@ -2322,7 +2327,7 @@ Para la carga y visualización preliminar de los datos se han utilizado las sigu
     \item \texttt{rownames(x)}: Devuelve los nombres (o números) de las filas de un data frame, utilizado aquí para identificar cada observación secuencialmente.
 \end{itemize}
 
-\subsubsection{3. Carga y Exploración Visual}
+\subsubsection{Carga y Exploración Visual}
 A continuación se muestra el código para cargar los datos y generar la visualización inicial.
 
 <<ejercicio2_4_carga_datos, echo=TRUE, fig=TRUE, width=6, height=6, align='center'>>=
@@ -2354,7 +2359,7 @@ Esta inspección visual sugiere fuertemente que P4 será identificado como \text
 
 \newpage
 
-\subsubsection{4. Método de Proximidad: K-Vecinos (Implementación Manual)}
+\subsubsection{Método de Proximidad: K-Vecinos (Implementación Manual)}
 
 En esta sección se desarrolla un algoritmo basado en la proximidad para la detección de anomalías. El enfoque fundamental consiste en medir cuán aislado se encuentra un punto respecto al resto de la muestra.
 
@@ -2410,7 +2415,7 @@ cat("Matriz de Distancias Euclídeas (calculada manualmente):\n")
 print(round(matriz_dist, 2))
 
 # --- Paso 2: Análisis de Vecindad ---
-cat("\nAnálisis detallado de vecindad (K =", K, "):\n")
+cat("\nAnálisis de vecindad (K =", K, "):\n")
 
 # Vector para almacenar la distancia determinante para cada punto
 distancias_k3 <- numeric(n)
@@ -2453,12 +2458,20 @@ for (i in 1:n) {
 @
 
 \paragraph{Interpretación de resultados.}
-El análisis detallado muestra que para la mayoría de los puntos (P1, P2, P3, P5), sus tres vecinos más cercanos se encuentran a una distancia relativamente corta (entre 2.00 y 2.83 unidades).
+El análisis muestra que para la mayoría de los puntos (P1, P2, P3, P5), sus tres vecinos más cercanos se encuentran a una distancia relativamente corta (entre 2.00 y 2.83 unidades).
 Sin embargo, para el punto \textbf{P4 (2, 1)}, incluso su vecino más cercano está lejos, y su tercer vecino se encuentra a una distancia de \textbf{9.22} unidades. Al superar el umbral establecido de 5, el algoritmo K-NN identifica exitosamente a P4 como un dato anómalo por proximidad.
 
+
+\subsubsection*{Prompt de IA Utilizado (K-NN)}
+\begin{quote}
+For the autonomous section 2.4, I need to develop an R script that manually implements the K-Nearest Neighbors (K-NN) algorithm for outlier detection.
+The analysis will use the biology seminar dataset from the lab PDF, which contains 5 observations of (Mujeres, Hombres).
+A critical constraint is that this implementation must be built entirely from scratch, using only base R loops and arithmetic functions.
+The script must not use the built-in \texttt{dist()} function or any external analysis packages. The implementation should first manually construct the full N x N Euclidean distance matrix, then iterate through each point to identify its K nearest neighbors (e.g., K=3), and finally apply a predefined distance threshold to classify and report which points are outliers.
+\end{quote}
 \newpage
 
-\subsubsection{5. Método de Densidad: Local Outlier Factor (Implementación Manual)}
+\subsubsection{Método de Densidad: Local Outlier Factor (Implementación Manual)}
 
 Este segundo enfoque busca identificar anomalías basándose en la densidad local de cada punto en relación con la de sus vecinos. Es especialmente útil para detectar \textit{outliers} que podrían no estar extremadamente lejos en términos absolutos, pero sí en una región de densidad significativamente menor que su entorno.
 
@@ -2584,6 +2597,14 @@ for (i in 1:n) {
 \paragraph{Interpretación de resultados LOF.}
 Los resultados muestran que los puntos P1, P2, P3 y P5 tienen valores de \textit{drm} cercanos a 1 (entre 0.90 y 1.16), lo que indica que su densidad es comparable a la de sus vecinos; son puntos que forman parte de un \textit{cluster} homogéneo.
 Por el contrario, el punto \textbf{P4} presenta un \textit{drm} extremadamente bajo de \textbf{0.1852}. Esto significa que su densidad local es aproximadamente cinco veces menor que la densidad media de sus vecinos más cercanos. Este contraste tan marcado lo identifica inequívocamente como una anomalía local, confirmando el resultado obtenido anteriormente por el método de proximidad.
+
+\subsubsection*{Prompt de IA Utilizado (LOF)}
+\begin{quote}
+As the second part of Exercise 2.4, I must implement the Local Outlier Factor (LOF) algorithm manually, again without relying on any specialized packages.
+This script must strictly adhere to the specific 'Density Relative Media' (drm) methodology presented in our course theory.
+The process must begin by manually calculating the N x N distance matrix using the Manhattan distance. Following this, the script must execute three distinct phases: (A) Calculate the local density \texttt{d(P)} for every point, defined as the inverse of the mean distance to its K neighbors. (B) Calculate the \texttt{drm} score for every point \texttt{P} by dividing its own density by the average density of its K neighbors.
+(C) Conclude by analyzing these scores and identifying outliers as those points whose \texttt{drm} score is significantly less than 1 for example.
+\end{quote}
 
 \section{Conclusiones}
 [...AQUÍ VA TU TEXTO: Escribe tus conclusiones finales sobre el proyecto. Por ejemplo: "La implementación manual del algoritmo Apriori en R, aunque compleja, permite un entendimiento profundo de sus mecanismos internos, como la generación de candidatos y el conteo de soporte. El uso de Sweave ha sido fundamental para crear este documento reproducible..."]
