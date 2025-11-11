@@ -627,7 +627,8 @@ generate_candidates <- function(L_prev) {
    candidates <- list()
    
    for (i in seq_len(n - 1)) {         
-     for (j in seq(i + 1, n)) {         
+     for (j in seq(i + 1, n)) {   
+       a <- L_prev[[i]]      
        b <- L_prev[[j]]
        
        
@@ -805,7 +806,6 @@ print_tree(all_trees$suceso1$tree_C2)
 
 
 #5º FASE ------------------------------------------------------------------
-
 
 # Función que recoje todos las hojas del árbol para posteriormente poder contar las apariciones
 get_leaf_paths <- function(node, current_path = integer()) {

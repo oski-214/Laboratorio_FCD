@@ -1290,12 +1290,20 @@ fase se utilizarán para crear los sucesos candidatos de las diferentes dimensio
 cargar la muestra.]
 
 \subsubsection*{Código y Ejecución (Sweave)}
-<<Fase1_codigo, echo=TRUE, results=verbatim>>=
+<<Fase1_codigo, echo=TRUE, results=verbatim, width=65>>=
 # 1ª FASE ----------------------------------------------------
 library(Matrix)
 library(arules)
 
-muestra<-Matrix(c(1,1,1,1,0,0, 1,1,0,1,1,0, 1,1,1,0,0,0, 1,0,1,1,1,0, 1,1,0,1,0,0, 0,0,1,0,0,0, 1,1,0,1,0,0, 0,0,0,0,1,1), 8, 6, byrow=TRUE, dimnames = list(c("suceso1", "suceso2", "suceso3", "suceso4", "suceso5", "suceso6", "suceso7", "suceso8"), c("Faros de Xenon", "Control de Velocidad", "Navegador", "Bluetooth", "Techo Solar", "Alarma")),sparse=TRUE)
+muestra<-Matrix(c(1,1,1,1,0,0, 1,1,0,1,1,0, 1,1,1,0,0,0, 1,0,1,1,1,0,
+                 1,1,0,1,0,0, 0,0,1,0,0,0, 1,1,0,1,0,0, 0,0,0,0,1,1),
+                 8, 6, byrow=TRUE,
+                 dimnames = list(
+                   c("suceso1", "suceso2", "suceso3", "suceso4",
+                     "suceso5", "suceso6", "suceso7", "suceso8"),
+                   c("Faros de Xenon", "Control de Velocidad", "Navegador",
+                     "Bluetooth", "Techo Solar", "Alarma")
+                 ), sparse=TRUE)
 
 muestrangCMatrix<-as(muestra, "nsparseMatrix")
 trapmuestrangCMatrix<-t(muestrangCMatrix)
@@ -1304,15 +1312,15 @@ transacciones<-as(trapmuestrangCMatrix, "transactions")
 summary(transacciones)
 
 frequency <- itemFrequency(transacciones, type ="absolute")
-frequency
+print(data.frame(Frecuencia = frequency))
 
 support_threshold <- 0.5
 numero_sucesos <-length(transacciones)
 support_sucesos <-frequency/numero_sucesos
-support_sucesos
+print(data.frame(Soporte = support_sucesos))
 
 elementos_S_validos <- support_sucesos[support_sucesos >= support_threshold]
-elementos_S_validos
+print(data.frame(Soporte_Valido = elementos_S_validos))
 @
 
 \subsubsection*{Prompt de IA Utilizado}
@@ -1357,40 +1365,42 @@ candidatos de la dimensión K-1 donde los últimos elementos de ambos sean difer
 de forma que no haya conflicto a la hora de combinar ambos sucesos].
 
 \subsubsection*{Código y Ejecución (Sweave)}
-<<Fase2_codigo, echo=TRUE, results=verbatim>>=
+<<Fase2_codigo, echo=TRUE, results=verbatim, width=65>>=
 # 2ª FASE ----------------------------------------------------
 L1 <- c("Faros de Xenon", "Control de Velocidad", "Navegador", "Bluetooth")
 L1_lista <- lapply(L1, function(x) c(x))
 
 generate_candidates <- function(L_prev) {
     n <- length(L_prev)
-    if (n <= 1) return(list())     
+    if (n <= 1) return(list()) 
     
-    k <- length(L_prev[[1]]) + 1     
+    k <- length(L_prev[[1]]) + 1 
     
     # make sure items inside each subset are sorted
     L_prev <- lapply(L_prev, sort)
     candidates <- list()
     
-    for (i in seq_len(n - 1)) {         
-      for (j in seq(i + 1, n)) {         
-        a <- L_prev[[i]]
-        b <- L_prev[[j]]
-        
-        
-        if (k - 2 == 0 || all(a[1:(k - 2)] == b[1:(k - 2)])) {
-          new_set <- sort(unique(c(a, b)))
-          if (length(new_set) == k) {
-            candidates <- append(candidates, list(new_set))
-          }
+    for (i in seq_len(n - 1)) { 
+        for (j in seq(i + 1, n)) { 
+            a <- L_prev[[i]]
+            b <- L_prev[[j]]
+            
+            
+            if (k - 2 == 0 || all(a[1:(k - 2)] == b[1:(k - 2)])) {
+                new_set <- sort(unique(c(a, b)))
+                if (length(new_set) == k) {
+                    candidates <- append(candidates, list(new_set))
+                }
+            }
         }
-      }
     }
     
     # eliminar duplicados (si hay)
     if (length(candidates) > 0) {
-      candidates <- unique(lapply(candidates, function(x) paste(sort(x), collapse = ",")))
-      candidates <- lapply(candidates, function(x) strsplit(x, ",")[[1]])
+        candidates <- unique(lapply(candidates,
+                                    function(x) paste(sort(x), collapse = ",")))
+        candidates <- lapply(candidates,
+                                     function(x) strsplit(x, ",")[[1]])
     }
     return(candidates)
 }
@@ -1460,7 +1470,7 @@ transformación numérica de los sucesos candidatos. Una vez se tenga hecho, se 
 cada dimensión (L2, L3, L4)]
 
 \subsubsection*{Código y Ejecución (Sweave)}
-<<Fase3_codigo, echo=TRUE, results=verbatim>>=
+<<Fase3_codigo, echo=TRUE, results=verbatim, width=65>>=
 # 3º FASE ----------------------------------------------------
 item_map <- c(
     "Faros de Xenon" = 1,
@@ -1473,8 +1483,8 @@ item_map <- c(
 
 encode_candidates <- function(candidates, mapping) {
     lapply(candidates, function(subset) {
-      nums <- unname(mapping[subset])     
-      sort(nums)
+        nums <- unname(mapping[subset]) 
+        sort(nums)
     })
 }
 
@@ -1528,7 +1538,7 @@ crear todas las combinaciones de cada suceso de la muestra para cada una de las 
 los hash-trees para cada dimensión a partir de todas las combinaciones posibles creadas.]
 
 \subsubsection*{Código y Ejecución (Sweave)}
-<<Fase4_codigo, echo=TRUE, results=verbatim>>=
+<<Fase4_codigo, echo=TRUE, results=verbatim, width=65>>=
 # 4º FASE ----------------------------------------------------
 all_candidates <- c(L2_numerico, L3_numerico, L4_numerico)
 
@@ -1549,45 +1559,46 @@ make_node <- function(item = NULL, is_end = FALSE) {
 insert_candidate <- function(root, candidate) {
     current <- root
     for (it in candidate) {
-      key <- as.character(it)
-      if (!(key %in% names(current$children))) {
-        current$children[[key]] <- make_node(item = it, is_end = FALSE)
-      }
-      current <- current$children[[key]]
+        key <- as.character(it)
+        if (!(key %in% names(current$children))) {
+            current$children[[key]] <- make_node(item = it, is_end = FALSE)
+        }
+        current <- current$children[[key]]
     }
     current$is_end <- TRUE
     invisible(NULL)
 }
- 
- 
+
+
 build_tree <- function(candidates) {
     root <- make_node(item = NULL, is_end = FALSE)
     for (cand in candidates) {
-      insert_candidate(root, cand)
+        insert_candidate(root, cand)
     }
     root
 }
- 
- 
- 
- 
+
+
+
+
 print_tree <- function(node, depth = 0) {
     indent <- paste(rep("  ", depth), collapse = "")
     if (is.null(node$item)) {
-      cat("(root)\n")
+        cat("(root)\n")
     } else {
-      cat(indent, "- ", node$item, if (node$is_end) " [end]\n" else "\n", sep = "")
+        cat(indent, "- ", node$item, if (node$is_end) " [end]\n" else "\n",
+            sep = "")
     }
     if (length(node$children) > 0) {
-      keys <- as.integer(names(node$children))
-      keys <- sort(keys, na.last = TRUE)
-      for (k in as.character(keys)) {
-        print_tree(node$children[[k]], depth + 1)
-      }
+        keys <- as.integer(names(node$children))
+        keys <- sort(keys, na.last = TRUE)
+        for (k in as.character(keys)) {
+            print_tree(node$children[[k]], depth + 1)
+        }
     }
 }
- 
- 
+
+
 arbol_L2_candidatos <- build_tree(L2_candidatos)
 arbol_L3_candidatos <- build_tree(L3_candidatos)
 arbol_L4_candidatos <- build_tree(L4_candidatos)
@@ -1612,19 +1623,19 @@ generate_subsets <- function(items, k) {
 
 transaction_subsets <- lapply(transactions_num, function(items) {
     list(
-      C2 = generate_subsets(items, 2),
-      C3 = generate_subsets(items, 3),
-      C4 = generate_subsets(items, 4)
+        C2 = generate_subsets(items, 2),
+        C3 = generate_subsets(items, 3),
+        C4 = generate_subsets(items, 4)
     )
 })
- 
+
 all_trees <- lapply(transaction_subsets, function(subs) {
     list(
-      tree_C2 = if (length(subs$C2) > 0) build_tree(subs$C2) else NULL,
-      tree_C3 = if (length(subs$C3) > 0) build_tree(subs$C3) else NULL,
-      tree_C4 = if (length(subs$C4) > 0) build_tree(subs$C4) else NULL
+        tree_C2 = if (length(subs$C2) > 0) build_tree(subs$C2) else NULL,
+        tree_C3 = if (length(subs$C3) > 0) build_tree(subs$C3) else NULL,
+        tree_C4 = if (length(subs$C4) > 0) build_tree(subs$C4) else NULL
     )
-  })
+})
 print_tree(all_trees$suceso1$tree_C2)
 @
 
@@ -1688,22 +1699,22 @@ que solo aquellos sucesos que superen el umbral de soporte serán considerados e
 $n^o$ de veces que aparecen los sucesos candidatos/$n^o$ de sucesos de la muestra es superior o igual al umbral de soporte]
 
 \subsubsection*{Código y Ejecución (Sweave)}
-<<Fase5_codigo, echo=TRUE, results=verbatim>>=
+<<Fase5_codigo, echo=TRUE, results=verbatim, width=65>>=
 # 5º FASE ----------------------------------------------------
 
 
 get_leaf_paths <- function(node, current_path = integer()) {
     paths <- list()
     if (!is.null(node$item)) {
-      current_path <- c(current_path, node$item)
+        current_path <- c(current_path, node$item)
     }
     if (node$is_end) {
-      paths <- append(paths, list(current_path))
+        paths <- append(paths, list(current_path))
     }
     if (length(node$children) > 0) {
-      for (child in node$children) {
-        paths <- append(paths, get_leaf_paths(child, current_path))
-      }
+        for (child in node$children) {
+            paths <- append(paths, get_leaf_paths(child, current_path))
+        }
     }
     paths
 }
@@ -1711,11 +1722,11 @@ get_leaf_paths <- function(node, current_path = integer()) {
 path_in_tree <- function(tree, path) {
     current <- tree
     for (item in path) {
-      key <- as.character(item)
-      if (!(key %in% names(current$children))) {
-        return(FALSE)
-      }
-      current <- current$children[[key]]
+        key <- as.character(item)
+        if (!(key %in% names(current$children))) {
+            return(FALSE)
+        }
+        current <- current$children[[key]]
     }
    return(TRUE)
 }
@@ -1725,20 +1736,20 @@ count_supports <- function(candidate_tree, sample_trees_by_level) {
     supports <- numeric(length(candidate_paths))
     
     for (i in seq_along(candidate_paths)) {
-      path <- candidate_paths[[i]]
-      supports[i] <- sum(sapply(sample_trees_by_level, function(trees) {
-        tree_level <- NULL
-        k <- length(path)
-        if (k == 2) tree_level <- trees$tree_C2
-        else if (k == 3) tree_level <- trees$tree_C3
-        else if (k == 4) tree_level <- trees$tree_C4
-        if (is.null(tree_level)) return(FALSE)
-        path_in_tree(tree_level, path)
-      }))
+        path <- candidate_paths[[i]]
+        supports[i] <- sum(sapply(sample_trees_by_level, function(trees) {
+            tree_level <- NULL
+            k <- length(path)
+            if (k == 2) tree_level <- trees$tree_C2
+            else if (k == 3) tree_level <- trees$tree_C3
+            else if (k == 4) tree_level <- trees$tree_C4
+            if (is.null(tree_level)) return(FALSE)
+            path_in_tree(tree_level, path)
+        }))
     }
     data.frame(
-      itemset = sapply(candidate_paths, function(p) paste(p, collapse = ",")),
-      support = supports
+        itemset = sapply(candidate_paths, function(p) paste(p, collapse = ",")),
+        support = supports
     )
 }
 
@@ -1758,9 +1769,12 @@ filter_by_threshold <- function(support_df, threshold, total_tx) {
     subset(support_df, support_ratio >= threshold)
 }
 
-L2_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L2, support_threshold, numero_sucesos)
-L3_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L3, support_threshold, numero_sucesos)
-L4_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L4, support_threshold, numero_sucesos)
+L2_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L2,
+                                support_threshold, numero_sucesos)
+L3_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L3,
+                                support_threshold, numero_sucesos)
+L4_candidatos_post_arbol <- filter_by_threshold(soporte_arbol_L4,
+                                support_threshold, numero_sucesos)
 
 print("Itemsets Frecuentes L2 (Post-Filtro):")
 print(L2_candidatos_post_arbol)
@@ -1825,7 +1839,7 @@ $2^K-2$. De forma que si por ejemplo $K=3$, habrá 6 reglás de asociación que 
 se debe entender que se forman con la siguiente estructura $A \to B-A$, donde $B$ podría ser $\{Co, Li\}$ y $A$ sería $\{Co\}$ o $\{Li\}$.]
 
 \subsubsection*{Código y Ejecución (Sweave)}
-<<Fase6_codigo, echo=TRUE, results=verbatim>>=
+<<Fase6_codigo, echo=TRUE, results=verbatim, width=65>>=
 # 6ª FASE ----------------------------------------------------
 item_map_rev <- setNames(names(item_map), item_map)
 
@@ -1833,12 +1847,15 @@ generate_associations <- function(itemset) {
     k <- length(itemset)
     associations <- list()
     if (k < 2) return(associations)
- 
-   all_subsets <- unlist(lapply(1:(k - 1), function(i) combn(itemset, i, simplify = FALSE)), recursive = FALSE)
- 
+
+    all_subsets <- unlist(lapply(1:(k - 1),
+                                  function(i) combn(itemset, i,
+                                                    simplify = FALSE)),
+                           recursive = FALSE)
+
     for (lhs in all_subsets) {
-      rhs <- setdiff(itemset, lhs)
-      associations <- append(associations, list(list(lhs = lhs, rhs = rhs)))
+        rhs <- setdiff(itemset, lhs)
+        associations <- append(associations, list(list(lhs = lhs, rhs = rhs)))
     }
     associations
 }
@@ -1850,18 +1867,21 @@ create_associations_from_L <- function(L_df) {
     
     all_associations <- list()
     for (i in seq_len(nrow(L_df))) {
-      itemset <- split_itemset(L_df$itemset[i])
-      associations <- generate_associations(itemset)
-      all_associations <- append(all_associations, lapply(associations, function(r) {
-        data.frame(
-          lhs = paste(item_map_rev[as.character(sort(r$lhs))], collapse = ", "),
-          rhs = paste(item_map_rev[as.character(sort(r$rhs))], collapse = ", "),
-          k = length(itemset),
-          support = L_df$support[i],
-          support_ratio = L_df$support_ratio[i],
-          stringsAsFactors = FALSE
-        )
-      }))
+        itemset <- split_itemset(L_df$itemset[i])
+        associations <- generate_associations(itemset)
+        all_associations <- append(all_associations,
+                                 lapply(associations, function(r) {
+            data.frame(
+                lhs = paste(item_map_rev[as.character(sort(r$lhs))],
+                          collapse = ", "),
+                rhs = paste(item_map_rev[as.character(sort(r$rhs))],
+                          collapse = ", "),
+                k = length(itemset),
+                support = L_df$support[i],
+                support_ratio = L_df$support_ratio[i],
+                stringsAsFactors = FALSE
+            )
+        }))
     }
     
    do.call(rbind, all_associations)
@@ -1932,7 +1952,7 @@ contabilizar de la muestra. Aquellas reglas de asociación que superen dicho umb
 una, la otra también sucede con ese grado de confianza.]
 
 \subsubsection*{Código y Ejecución (Sweave)}
-<<Fase7_codigo, echo=TRUE, results=verbatim>>=
+<<Fase7_codigo, echo=TRUE, results=verbatim, width=65>>=
 # 7ª FASE ----------------------------------------------------
 confidence_threshold <- 0.8
 
@@ -1950,33 +1970,41 @@ soporte_L1_map_df <- data.frame(
 )
 
 soporte_L2_map_df <- data.frame(
-    lhs_str = sapply(soporte_arbol_L2$itemset, convert_numeric_str_to_text_str, map_rev = item_map_rev),
+    lhs_str = sapply(soporte_arbol_L2$itemset,
+                     convert_numeric_str_to_text_str,
+                     map_rev = item_map_rev),
     lhs_support = soporte_arbol_L2$support,
     stringsAsFactors = FALSE
 )
 
 soporte_L3_map_df <- data.frame(
-    lhs_str = sapply(soporte_arbol_L3$itemset, convert_numeric_str_to_text_str, map_rev = item_map_rev),
+    lhs_str = sapply(soporte_arbol_L3$itemset,
+                     convert_numeric_str_to_text_str,
+                     map_rev = item_map_rev),
     lhs_support = soporte_arbol_L3$support,
     stringsAsFactors = FALSE
 )
 
-master_support_lookup <- rbind(soporte_L1_map_df, soporte_L2_map_df, soporte_L3_map_df)
+master_support_lookup <- rbind(soporte_L1_map_df,
+                               soporte_L2_map_df,
+                               soporte_L3_map_df)
 master_support_lookup <- na.omit(master_support_lookup)
 
-calculate_and_filter_confidence <- function(associations_df, support_lookup, threshold) {
+calculate_and_filter_confidence <- function(associations_df,
+                                            support_lookup, threshold) {
     if (nrow(associations_df) == 0) {
-      return(data.frame(
-        lhs = character(),
-        rhs = character(),
-        k = integer(),
-        support_ratio = numeric(),
-        confidence = numeric(),
-        stringsAsFactors = FALSE
-      ))
+        return(data.frame(
+            lhs = character(),
+            rhs = character(),
+            k = integer(),
+            support_ratio = numeric(),
+            confidence = numeric(),
+            stringsAsFactors = FALSE
+        ))
     }
     
-    merged_df <- merge(associations_df, support_lookup, by.x = "lhs", by.y = "lhs_str", all.x = TRUE)
+    merged_df <- merge(associations_df, support_lookup,
+                       by.x = "lhs", by.y = "lhs_str", all.x = TRUE)
     
     merged_df$lhs_support[is.na(merged_df$lhs_support)] <- 0
     
@@ -1985,45 +2013,53 @@ calculate_and_filter_confidence <- function(associations_df, support_lookup, thr
     
     merged_df$confidence[is.nan(merged_df$confidence)] <- 0
     
-    strong_rules <- merged_df[, c("lhs", "rhs", "k", "support_ratio", "confidence")]
+    strong_rules <- merged_df[, c("lhs", "rhs", "k",
+                                  "support_ratio", "confidence")]
     
 
     strong_rules[order(-strong_rules$confidence), ]
 }
 
-reglas_fuertes_L2 <- calculate_and_filter_confidence(associaciones_L2, master_support_lookup, confidence_threshold)
-reglas_fuertes_L3 <- calculate_and_filter_confidence(associaciones_L3, master_support_lookup, confidence_threshold)
-reglas_fuertes_L4 <- calculate_and_filter_confidence(associaciones_L4, master_support_lookup, confidence_threshold)
+reglas_fuertes_L2 <- calculate_and_filter_confidence(associaciones_L2,
+                                     master_support_lookup,
+                                     confidence_threshold)
+reglas_fuertes_L3 <- calculate_and_filter_confidence(associaciones_L3,
+                                     master_support_lookup,
+                                     confidence_threshold)
+reglas_fuertes_L4 <- calculate_and_filter_confidence(associaciones_L4,
+                                     master_support_lookup,
+                                     confidence_threshold)
 
 # Filtrado final
-reglas_finales_L2 <- subset(reglas_fuertes_L2, confidence >= confidence_threshold)
-reglas_finales_L3 <- subset(reglas_fuertes_L3, confidence >= confidence_threshold)
-reglas_finales_L4 <- subset(reglas_fuertes_L4, confidence >= confidence_threshold)
+reglas_finales_L2 <- subset(reglas_fuertes_L2,
+                            confidence >= confidence_threshold)
+reglas_finales_L3 <- subset(reglas_fuertes_L3,
+                            confidence >= confidence_threshold)
+reglas_finales_L4 <- subset(reglas_fuertes_L4,
+                            confidence >= confidence_threshold)
+
 
 print("--- Reglas que superan el umbral de confianza (0.8) ---")
-print("Reglas Finales L2:")
-print(reglas_finales_L2)
-print("Reglas Finales L3:")
-print(reglas_finales_L3)
-print("Reglas Finales L4:")
-print(reglas_finales_L4)
+
+print("Reglas Finales L2 (Columnas de texto):")
+
+if(nrow(reglas_finales_L2) > 0) print(reglas_finales_L2[, c("lhs", "rhs")])
+print("Reglas Finales L2 (Columnas numéricas):")
+
+if(nrow(reglas_finales_L2) > 0) print(reglas_finales_L2[, c("k", "support_ratio", "confidence")])
+
+
+print("Reglas Finales L3 (Columnas de texto):")
+if(nrow(reglas_finales_L3) > 0) print(reglas_finales_L3[, c("lhs", "rhs")])
+print("Reglas Finales L3 (Columnas numéricas):")
+if(nrow(reglas_finales_L3) > 0) print(reglas_finales_L3[, c("k", "support_ratio", "confidence")])
+
+
+print("Reglas Finales L4 (Columnas de texto):")
+if(nrow(reglas_finales_L4) > 0) print(reglas_finales_L4[, c("lhs", "rhs")])
+print("Reglas Finales L4 (Columnas numéricas):")
+if(nrow(reglas_finales_L4) > 0) print(reglas_finales_L4[, c("k", "support_ratio", "confidence")])
 @
-
-\subsubsection*{Prompt de IA Utilizado}
-\begin{quote}
-[so now we enter the last phase, we need to evaluate the confidence threshold
-for every association we created. In my case the confidence threshold will be of
-0.8 can you help me analyze this last phase for all the associations in every
-level please.
-
-And also, do not incorporate prunning to the code.]
-\end{quote}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% FIN DE LAS FASES
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
 
 \newpage
 
