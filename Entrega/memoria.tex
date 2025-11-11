@@ -419,8 +419,10 @@ Para este análisis, se estableció un soporte mínimo de 0.5 y una confianza m�
 Apriori
 
 Parameter specification:
- confidence minval smax arem  aval originalSupport maxtime support minlen maxlen target  ext
-        0.8    0.1    1 none FALSE            TRUE       5     0.5      1     10  rules TRUE
+ confidence minval smax arem  aval originalSupport maxtime support minlen maxlen
+        0.8    0.1    1 none FALSE            TRUE       5     0.5      1     10
+ target  ext
+  rules TRUE
 
 Algorithmic control:
  filter tree heap memopt load sort verbose
@@ -2199,8 +2201,10 @@ transactions as itemMatrix in sparse format with
  6 columns (items) and a density of 0.5 
 
 most frequent items:
-      Faros de Xenon Control de Velocidad            Bluetooth            Navegador          Techo Solar              (Other) 
-                   6                    5                    5                    4                    3                    1 
+      Faros de Xenon Control de Velocidad            Bluetooth            Navegador 
+                   6                    5                    5                    4 
+         Techo Solar              (Other) 
+                   3                    1 
 
 element (itemset/transaction) length distribution:
 sizes
@@ -2407,7 +2411,8 @@ de forma que no haya conflicto a la hora de combinar ambos sucesos].
 \end{Sinput}
 \begin{Soutput}
 [[1]]
-[1] "Bluetooth"            "Control de Velocidad" "Faros de Xenon"       "Navegador"           
+[1] "Bluetooth"            "Control de Velocidad" "Faros de Xenon"      
+[4] "Navegador"           
 \end{Soutput}
 \end{Schunk}
 
@@ -3006,13 +3011,20 @@ se debe entender que se forman con la siguiente estructura $A \to B-A$, donde $B
 > print(associaciones_L3)
 \end{Sinput}
 \begin{Soutput}
-                                   lhs                                  rhs k support support_ratio
-1                       Faros de Xenon      Control de Velocidad, Bluetooth 3       4           0.5
-2                 Control de Velocidad            Faros de Xenon, Bluetooth 3       4           0.5
-3                            Bluetooth Faros de Xenon, Control de Velocidad 3       4           0.5
-4 Faros de Xenon, Control de Velocidad                            Bluetooth 3       4           0.5
-5            Faros de Xenon, Bluetooth                 Control de Velocidad 3       4           0.5
-6      Control de Velocidad, Bluetooth                       Faros de Xenon 3       4           0.5
+                                   lhs                                  rhs k support
+1                       Faros de Xenon      Control de Velocidad, Bluetooth 3       4
+2                 Control de Velocidad            Faros de Xenon, Bluetooth 3       4
+3                            Bluetooth Faros de Xenon, Control de Velocidad 3       4
+4 Faros de Xenon, Control de Velocidad                            Bluetooth 3       4
+5            Faros de Xenon, Bluetooth                 Control de Velocidad 3       4
+6      Control de Velocidad, Bluetooth                       Faros de Xenon 3       4
+  support_ratio
+1           0.5
+2           0.5
+3           0.5
+4           0.5
+5           0.5
+6           0.5
 \end{Soutput}
 \end{Schunk}
 
