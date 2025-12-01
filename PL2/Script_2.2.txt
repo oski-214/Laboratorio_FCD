@@ -1,0 +1,172 @@
+############################################################
+# 1) FUNCIÓN PASO A PASO ESTILO LearnClust + hclust
+############################################################
+
+agglomerative_manual_LearnClust <- function(m, linkage_type = "MIN", use_hclust = TRUE) {
+  linkage_type <- toupper(linkage_type)
+  if (!linkage_type %in% c("MIN", "MAX", "AVG")) {
+    stop("linkage_type debe ser 'MIN', 'MAX' o 'AVG'")
+  }
+  
+  n <- nrow(m)
+  clusters <- lapply(1:n, function(i) m[i, , drop = FALSE])
+  active <- rep(TRUE, length(clusters))
+  
+  cat("Agglomerative hierarchical clustering (manual estilo LearnClust)\n")
+  cat("Distance: EUC, Linkage:", linkage_type, "\n\n")
+  cat("Clusters iniciales (uno por observación):\n")
+  print(clusters)
+  cat("\n")
+  
+  step <- 1
+  dist_euc <- function(a, b) sqrt(sum((a - b)^2))
+  
+  # Para reconstruir el árbol tipo hclust
+  merge_mat <- NULL
+  height_vec <- c()
+  
+  while (sum(active) > 1) {
+    cat("_____________________________________________________________________________________________\n\n")
+    cat("STEP =>", step, "\n\n")
+    
+    K <- length(clusters)
+    D <- matrix(0, nrow = K, ncol = K)
+    min_dist <- Inf
+    pair_to_merge <- c(NA, NA)
+    idx_act <- which(active)
+    
+    for (ii in seq_along(idx_act)) {
+      i <- idx_act[ii]
+      for (jj in seq_along(idx_act)) {
+        j <- idx_act[jj]
+        if (i == j) {
+          D[i, j] <- 0
+        } else {
+          ci <- clusters[[i]]
+          cj <- clusters[[j]]
+          
+          all_d <- outer(
+            1:nrow(ci),
+            1:nrow(cj),
+            Vectorize(function(a, b) dist_euc(ci[a, ], cj[b, ]))
+          )
+          
+          if (linkage_type == "MIN") {
+            Dij <- min(all_d)
+          } else if (linkage_type == "MAX") {
+            Dij <- max(all_d)
+          } else { # AVG
+            Dij <- mean(all_d)
+          }
+          
+          D[i, j] <- Dij
+          
+          if (i < j && Dij < min_dist) {
+            min_dist <- Dij
+            pair_to_merge <- c(i, j)
+          }
+        }
+      }
+    }
+    
+    cat("Matrix Distance (distance type = EUC, approach type =", linkage_type, "): \n\n")
+    print(round(D, 6))
+    cat("\n")
+    cat("The minimum distance is:", min_dist, "\n\n")
+    cat("The closest clusters are:", pair_to_merge[1], ",", pair_to_merge[2], "\n\n")
+    cat("The grouped clusters are added to the solution.\n\n")
+    
+    i <- pair_to_merge[1]
+    j <- pair_to_merge[2]
+    new_cluster <- rbind(clusters[[i]], clusters[[j]])
+    rownames(new_cluster) <- NULL
+    
+    cat("Grouping clusters", i, "and cluster", j, ", it is created a new cluster:\n\n")
+    print(new_cluster)
+    cat("\nThe new cluster is added to the solution.\n\n")
+    
+    # Índices para hclust (negativos = observaciones originales)
+    to_hclust_index <- function(idx) {
+      if (idx <= n) -idx else idx - n
+    }
+    merge_mat <- rbind(
+      merge_mat,
+      c(to_hclust_index(i), to_hclust_index(j))
+    )
+    height_vec <- c(height_vec, min_dist)
+    
+    clusters[[K + 1]] <- new_cluster
+    active <- c(active, TRUE)
+    active[i] <- FALSE
+    active[j] <- FALSE
+    
+    step <- step + 1
+  }
+  
+  cat("This loop has been repeated until the last cluster contained every single clusters.\n\n")
+  
+  final_cluster <- clusters[[which(active)]]
+  
+  hclust_obj <- NULL
+  
+  if (use_hclust) {
+    hclust_obj <- list(
+      merge = merge_mat,
+      height = height_vec,
+      order  = 1:n,
+      labels = if (!is.null(rownames(m))) rownames(m) else as.character(1:n),
+      method = switch(linkage_type,
+                      "MIN" = "single",
+                      "MAX" = "complete",
+                      "AVG" = "average"),
+      call   = match.call()
+    )
+    class(hclust_obj) <- "hclust"
+  }
+  
+  invisible(list(
+    final_cluster = final_cluster,
+    hclust_obj    = hclust_obj
+  ))
+}
+
+############################################################
+# 2) DATOS: 15 OBSERVACIONES (Velocidad, Temperatura)
+############################################################
+
+datos <- matrix(c(
+  3.5, 4.5,   # 1
+  0.75, 3.25, # 2
+  0, 3,       # 3
+  1.75, 0.75, # 4
+  3, 3.75,    # 5
+  3.75, 4.5,  # 6
+  1.25, 0.75, # 7
+  0.25, 3,    # 8
+  3.5, 4.25,  # 9
+  1.5, 0.5,   # 10
+  1, 1,       # 11
+  3, 4,       # 12
+  0.5, 3,     # 13
+  2, 0.25,    # 14
+  0, 2.5      # 15
+), ncol = 2, byrow = TRUE)
+
+colnames(datos) <- c("Velocidad", "Temperatura")
+rownames(datos) <- paste0("Obs", 1:15)
+
+############################################################
+# 3) EJECUCIÓN: MIN, MAX, AVG + PLOT CON hclust
+############################################################
+
+# MIN (single linkage)
+res_min <- agglomerative_manual_LearnClust(datos, "MIN", use_hclust = TRUE)
+plot(res_min$hclust_obj, main = "Cluster jerárquico - MIN (single)", xlab = "", sub = "")
+
+# MAX (complete linkage)
+res_max <- agglomerative_manual_LearnClust(datos, "MAX", use_hclust = TRUE)
+plot(res_max$hclust_obj, main = "Cluster jerárquico - MAX (complete)", xlab = "", sub = "")
+
+# AVG (average linkage)
+res_avg <- agglomerative_manual_LearnClust(datos, "AVG", use_hclust = TRUE)
+plot(res_avg$hclust_obj, main = "Cluster jerárquico - AVG (average)", xlab = "", sub = "")
