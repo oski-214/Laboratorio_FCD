@@ -1,0 +1,185 @@
+# ==============================================================================
+# 2.2 CLUSTERING JERÁRQUICO: MIN, MAX, AVG Y EFECTO DEL JITTER
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# CARGA DE LIBRERÍA Y DEFINICIÓN DE LOS DATOS
+# ------------------------------------------------------------------------------
+
+# Se carga la librería que contiene la función agglomerative_clustering
+# install.packages("UAHDataScienceUC")  # Descomentar si no está instalado
+library(UAHDataScienceUC)
+
+# Se define una matriz con 15 observaciones bidimensionales (15 filas, 2 columnas).
+# Cada fila representa un punto en el plano (x, y).
+datos <- matrix(c(
+  3.5, 4.5,
+  0.75, 3.25,
+  0, 3,
+  1.75, 0.75,
+  3, 3.75,
+  3.75, 4.5,
+  1.25, 0.75,
+  0.25, 3,
+  3.5, 4.25,
+  1.5, 0.5,
+  1, 1,
+  3, 4,
+  0.5, 3,
+  2, 0.25,
+  0, 2.5
+), ncol = 2, byrow = TRUE)
+
+# Se asignan nombres de fila "1", "2", ..., "15" para identificar fácilmente
+# cada observación en salidas y gráficos.
+rownames(datos) <- as.character(1:nrow(datos))
+
+# ------------------------------------------------------------------------------
+# GENERACIÓN DE JITTER (RUIDO PEQUEÑO) SOBRE LOS DATOS
+# ------------------------------------------------------------------------------
+
+# Se fija la semilla para que la generación de ruido sea reproducible
+# (cada ejecución con esta semilla produce el mismo ruido).
+set.seed(123)
+
+# Se crea una matriz de ruido del mismo tamaño que 'datos',
+# con valores uniformes entre -0.03 y 0.03 en cada coordenada.
+ruido <- matrix(runif(length(datos), -0.03, 0.03), ncol = 2)
+
+# Se suman los pequeños ruidos a los datos originales, obteniendo 'datos_jitter'.
+# Esto simula jitter: ligeras perturbaciones de la posición de cada punto.
+datos_jitter <- datos + ruido
+
+# ============================================
+# MIN (single-link)
+# ============================================
+
+# ------------------------------------------------------------------------------
+# CLUSTERING JERÁRQUICO CON ENLACE MÍNIMO (SIN JITTER)
+# ------------------------------------------------------------------------------
+
+# Se aplica clustering jerárquico aglomerativo con:
+# - data = datos (puntos originales)
+# - proximity = "single" (enlace mínimo: distancia entre clústeres
+#   definida como la mínima distancia entre pares de puntos de ambos clústeres)
+# - distance_method = "euclidean" (distancia euclídea)
+# - learn y waiting se dejan para controlar el comportamiento interno de la función.
+cl_min_original <- agglomerative_clustering(
+  data = datos,
+  proximity = "single",
+  distance_method = "euclidean",
+  learn = TRUE,
+  waiting = FALSE
+)
+
+# ------------------------------------------------------------------------------
+# CLUSTERING JERÁRQUICO CON ENLACE MÍNIMO (CON JITTER)
+# ------------------------------------------------------------------------------
+
+# Se repite el mismo procedimiento, pero sobre los datos perturbados 'datos_jitter'.
+# Esto permite que grupos de 3 o más valores con la misma proximidad puedan ser
+# distinguidos los clusters que se vayan formando.
+cl_min_jitter <- agglomerative_clustering(
+  data = datos_jitter,
+  proximity = "single",
+  distance_method = "euclidean",
+  learn = TRUE,
+  waiting = FALSE
+)
+
+# ------------------------------------------------------------------------------
+# OBTENCIÓN DE PARTICIONES EN 3 CLÚSTERES (MIN)
+# ------------------------------------------------------------------------------
+
+# Se convierte el objeto devuelto por agglomerative_clustering a un objeto 'hclust'
+# y se corta el dendrograma en k = 3 clústeres para los datos originales.
+# El resultado es un vector que indica a qué clúster pertenece cada observación.
+cutree(as.hclust(cl_min_original), k = 3)
+
+# Se hace lo mismo para el clustering con jitter, permitiendo comparar
+# las asignaciones de clúster entre la versión original y la perturbada.
+# De esta forma se puede visualizar si el ruido añadido a los datos ha perjudicado
+# el resultado esperado. Para que todo esté correcto, los datos deben continuar 
+# estando en el cluster que se obtuvo para los datos originales.
+cutree(as.hclust(cl_min_jitter),   k = 3)
+
+# ============================================
+# MAX (complete-link)
+# ============================================
+
+# ------------------------------------------------------------------------------
+# CLUSTERING JERÁRQUICO CON ENLACE MÁXIMO (SIN JITTER)
+# ------------------------------------------------------------------------------
+
+# Se aplica clustering jerárquico con:
+# - proximity = "complete" (enlace completo: la distancia entre clústeres
+#   es la mayor distancia entre pares de puntos de ambos clústeres).
+# Este criterio tiende a formar clústeres más compactos y bien separados,
+# menos sensibles a cadenas de puntos que el single-link.
+cl_max_original <- agglomerative_clustering(
+  data = datos,
+  proximity = "complete",
+  distance_method = "euclidean",
+  learn = TRUE,
+  waiting = FALSE
+)
+
+# ============================================
+# AVG (average-link)
+# ============================================
+
+# ------------------------------------------------------------------------------
+# CLUSTERING JERÁRQUICO CON ENLACE PROMEDIO (SIN JITTER)
+# ------------------------------------------------------------------------------
+
+# Se aplica clustering jerárquico con:
+# - proximity = "average" (enlace promedio: la distancia entre clústeres
+#   es la media de las distancias entre todos los pares de puntos de ambos clústeres).
+# Este método suele dar un compromiso entre single-link y complete-link,
+# generando clústeres ni tan encadenados ni tan compactos como complete-link.
+cl_avg_original <- agglomerative_clustering(
+  data = datos,
+  proximity = "average",
+  distance_method = "euclidean",
+  learn = TRUE,
+  waiting = FALSE
+)
+
+# ============================================
+# VISUALIZACIÓN DE LOS DENDROGRAMAS
+# ============================================
+
+# ------------------------------------------------------------------------------
+# PREPARACIÓN DEL DISPOSITIVO GRÁFICO
+# ------------------------------------------------------------------------------
+
+# Se cierra cualquier dispositivo gráfico abierto previamente,
+# para evitar conflictos con nuevas ventanas de gráficos.
+dev.off()
+
+# ------------------------------------------------------------------------------
+# DENDROGRAMA PARA MAX (complete-link)
+# ------------------------------------------------------------------------------
+
+# Se abre una nueva ventana gráfica (en Windows) para mostrar el dendrograma
+# del clustering con enlace completo sobre los datos originales.
+windows()
+plot(as.hclust(cl_max_original), main = "MAX (complete-link)")
+
+# ------------------------------------------------------------------------------
+# DENDROGRAMA PARA AVG (average-link)
+# ------------------------------------------------------------------------------
+
+# Se abre otra ventana gráfica para el dendrograma de enlace promedio
+# con los datos originales.
+windows()
+plot(as.hclust(cl_avg_original), main = "AVG (average-link)")
+
+# ------------------------------------------------------------------------------
+# DENDROGRAMA PARA MIN (single-link) CON JITTER
+# ------------------------------------------------------------------------------
+
+# Finalmente, se abre una tercera ventana gráfica para mostrar el dendrograma
+# del clustering con enlace mínimo aplicado a los datos con jitter.
+windows()
+plot(as.hclust(cl_min_jitter), main = "MIN (single-link) con jitter")
