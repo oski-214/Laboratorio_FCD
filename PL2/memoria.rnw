@@ -1,0 +1,292 @@
+\documentclass[a4paper,12pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish]{babel}
+\usepackage{geometry}
+\geometry{a4paper,margin=2.5cm}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amsmath, amssymb}
+
+\usepackage{Sweave}
+
+\title{Memoria \\ PL2}
+\author{Asier Álamo \\ Lucía Díaz \\ Edgar Alexis Conforme \\ Óscar Morán}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Ejercicio 2.2: Clustering jerárquico MIN, MAX, AVG y efecto del jitter}
+
+\subsection{Descripción del conjunto de datos}
+En este ejercicio se trabaja con un conjunto sintético de 15 observaciones bidimensionales, donde cada fila representa un punto en el plano \((x, y)\). Las coordenadas se almacenan en una matriz \texttt{datos} de dimensión \(15 \times 2\). 
+
+\subsection{Funciones de R utilizadas}
+Para realizar el análisis de clustering jerárquico se emplean funciones base de R junto con la función \texttt{agglomerative\_clustering()} del paquete \texttt{UAHDataScienceUC}.
+
+\begin{itemize}
+  \item \textbf{\texttt{matrix(data, ncol, byrow)}}: Construye la matriz bidimensional \texttt{datos} a partir de un vector que contiene las coordenadas de las observaciones ordenadas por filas.
+  \item \textbf{\texttt{rownames(x)}}: Asigna nombres a las filas de la matriz, facilitando la identificación de cada observación en el dendrograma.
+  \item \textbf{\texttt{set.seed()} y \texttt{runif()}}: Fijan la semilla para garantizar la reproducibilidad y generan valores aleatorios uniformes que actúan como jitter sobre las coordenadas originales.
+  \item \textbf{\texttt{agglomerative\_clustering(data, proximity, distance\_method, ...)}}: Ejecuta el clustering jerárquico aglomerativo usando distintas reglas de enlace (\texttt{'single'}, \texttt{'complete'}, \texttt{'average'}) y distancia euclídea, devolviendo un objeto compatible con \texttt{hclust}.
+  \item \textbf{\texttt{as.hclust()}} y \textbf{\texttt{cutree()}}: Transforman el resultado a un objeto \texttt{hclust} estándar y permiten obtener particiones con un número fijado de clústeres, en este caso \(k = 3\).
+  \item \textbf{\texttt{plot()}}: Representa los dendrogramas de los distintos métodos de enlace.
+\end{itemize}
+
+
+\subsection{Implementación del análisis en R}
+
+<<ej2_2_calculo, echo=TRUE, results=verbatim, fig=FALSE>>=
+# ======================================================================
+# CLUSTERING JERÁRQUICO: MIN, MAX, AVG Y EFECTO DEL JITTER
+# ======================================================================
+
+# Carga de la librería con agglomerative_clustering
+# install.packages("UAHDataScienceUC")  # descomentar si es necesario
+library(UAHDataScienceUC)
+
+# Matriz con 15 puntos (x,y)
+datos <- matrix(c(
+  3.5,4.5, 0.75,3.25, 0,3,
+  1.75,0.75, 3,3.75, 3.75,4.5,
+  1.25,0.75, 0.25,3, 3.5,4.25,
+  1.5,0.5, 1,1, 3,4,
+  0.5,3, 2,0.25, 0,2.5
+), ncol = 2, byrow = TRUE)
+
+# Nombres de fila
+rownames(datos) <- as.character(1:nrow(datos))
+
+cat("Datos originales (sin jitter):\n")
+print(datos)
+
+# Jitter: ruido pequeño
+# Se fija la semilla para que la generación de ruido sea reproducible
+# (cada ejecución con esta semilla produce el mismo ruido).
+set.seed(123)
+
+# Se crea una matriz de ruido del mismo tamaño que 'datos',
+# con valores uniformes entre -0.03 y 0.03 en cada coordenada.
+ruido <- matrix(runif(length(datos), -0.03, 0.03), ncol = 2)
+
+# Se suman los pequeños ruidos a los datos originales, obteniendo
+# 'datos_jitter'. Esto simula jitter: ligeras perturbaciones de la 
+# posición de cada punto.
+datos_jitter <- datos + ruido
+
+cat("\nDatos con jitter (perturbados):\n")
+print(round(datos_jitter, 3))
+
+# MIN (single-link) sin y con jitter
+cl_min_original <- agglomerative_clustering(
+  data = datos,
+  proximity = "single",
+  distance_method = "euclidean",
+  learn = TRUE,
+  waiting = FALSE
+)
+
+cl_min_jitter <- agglomerative_clustering(
+  data = datos_jitter,
+  proximity = "single",
+  distance_method = "euclidean",
+  learn = TRUE,
+  waiting = FALSE
+)
+
+cat("\n=== Partición en 3 clústeres (single-link, sin jitter) ===\n")
+print(cutree(as.hclust(cl_min_original), k = 3))
+
+cat("\n=== Partición en 3 clústeres (single-link, con jitter) ===\n")
+print(cutree(as.hclust(cl_min_jitter), k = 3))
+
+# De esta forma se puede visualizar si el ruido añadido a los datos ha 
+# perjudicado el resultado esperado. Para que todo esté correcto, los 
+# datos deben continuar estando en el cluster que se obtuvo para los 
+# datos originales.
+
+
+
+# MAX (complete-link)
+cl_max_original <- agglomerative_clustering(
+  data = datos,
+  proximity = "complete",
+  distance_method = "euclidean",
+  learn = TRUE,
+  waiting = FALSE
+)
+
+# AVG (average-link)
+cl_avg_original <- agglomerative_clustering(
+  data = datos,
+  proximity = "average",
+  distance_method = "euclidean",
+  learn = TRUE,
+  waiting = FALSE
+)
+@
+
+\subsection{Visualización de los dendrogramas}
+
+% MAX (complete-link)
+<<ej2_2_fig_max, echo=FALSE, results=hide, fig=TRUE, fig.align="center", fig.width=6, fig.height=5>>=
+plot(as.hclust(cl_max_original), main = "MAX (complete-link)")
+@
+
+% AVG (average-link)
+<<ej2_2_fig_avg, echo=FALSE, results=hide, fig=TRUE, fig.align="center", fig.width=6, fig.height=5>>=
+plot(as.hclust(cl_avg_original), main = "AVG (average-link)")
+@
+
+% MIN (single-link) con jitter
+<<ej2_2_fig_min_jitter, echo=FALSE, results=hide, fig=TRUE, fig.align="center", fig.width=6, fig.height=5>>=
+plot(as.hclust(cl_min_jitter), main = "MIN (single-link) con jitter")
+@
+
+% MIN (single-link) sin jitter
+<<ej2_2_fig_min, echo=FALSE, results=hide, fig=TRUE, fig.align="center", fig.width=6, fig.height=5>>=
+plot(as.hclust(cl_min_original), main = "MIN (single-link) sin jitter")
+@
+
+\subsection{Correlación cophenética y comparación de métodos}
+
+En esta subsección se cuantifica qué criterio de enlace (MIN, MAX o AVG) reproduce mejor las distancias originales entre las observaciones, utilizando la \emph{correlación cophenética}. Esta correlación compara las distancias euclídeas originales con las distancias inducidas por cada dendrograma (distancias cophenéticas).
+
+<<ej2_2_coph, echo=TRUE, results=verbatim>>=
+# ============================================
+# CORRELACIÓN COPHENÉTICA MIN, MAX, AVG
+# ============================================
+
+# 1 Distancias originales entre los puntos ------------------------------
+# Matriz de distancias euclídeas entre todas las parejas de observaciones.
+# Será la referencia real que queremos que el dendrograma reproduzca.
+dist_original <- dist(datos, method = "euclidean")
+d_vec <- as.vector(dist_original)  # Se pasa a vector numérico
+
+# 2 Conversión de los resultados a objetos hclust -----------------------
+# Se convierten los resultados del clustering aglomerativo al formato 'hclust',
+# necesario para usar cophenetic() y cutree().
+hc_min <- as.hclust(cl_min_original)  # Árbol jerárquico para MIN
+hc_max <- as.hclust(cl_max_original)  # Árbol jerárquico para MAX
+hc_avg <- as.hclust(cl_avg_original)  # Árbol jerárquico para AVG
+
+# 3 Distancias cophenéticas de cada dendrograma -------------------------
+# Para cada par de puntos, cophenetic() devuelve la altura del nodo en el que
+# se fusionan en el dendrograma: la "distancia" inducida por el árbol.
+coph_min <- cophenetic(hc_min);  dh_min <- as.vector(coph_min)
+coph_max <- cophenetic(hc_max);  dh_max <- as.vector(coph_max)
+coph_avg <- cophenetic(hc_avg);  dh_avg <- as.vector(coph_avg)
+
+# 4 Definición de varianza, covarianza y desviación típicas poblacionales ----
+# Se usan versiones que dividen entre N (número de elementos), en lugar de N-1.
+
+# Varianza poblacional (divide entre N)
+var_pop <- function(x) {
+  x <- as.vector(x)
+  m <- mean(x)
+  sum((x - m)^2) / length(x)
+}
+
+# Covarianza poblacional (divide entre N)
+cov_pop <- function(x, y) {
+  x <- as.vector(x); y <- as.vector(y)
+  mx <- mean(x); my <- mean(y)
+  sum((x - mx) * (y - my)) / length(x)
+}
+
+# Desviación típica poblacional
+sd_pop <- function(x) sqrt(var_pop(x))
+
+# 5 Función para la correlación cophenética (definición poblacional) ----
+#   ρ = Cov_N(D, D̂) / (sd_N(D) * sd_N(D̂))
+# donde D son las distancias originales y D̂ las cophenéticas.
+coph_corr <- function(d, dh) {
+  d  <- as.vector(d)   # Distancias originales
+  dh <- as.vector(dh)  # Distancias cophenéticas
+
+  num  <- cov_pop(d, dh)    # Covarianza poblacional Cov_N(D, D̂)
+  sd_d  <- sd_pop(d)        # Desviación típica poblacional de D
+  sd_dh <- sd_pop(dh)       # Desviación típica poblacional de D̂
+  den  <- sd_d * sd_dh      # Producto de desviaciones típicas poblacionales
+
+  rho <- num / den          # Coeficiente de correlación cophenética (poblacional)
+
+  return(rho)
+}
+
+# 6 Cálculo de la correlación cophenética para cada método --------------
+# Se obtiene ρ para MIN, MAX y AVG comparando distancias originales
+# con las distancias inducidas por cada dendrograma.
+cor_min <- coph_corr(d_vec, dh_min)
+cor_max <- coph_corr(d_vec, dh_max)
+cor_avg <- coph_corr(d_vec, dh_avg)
+
+# 7 Mostrar resultados en consola ---------------------------------------
+# Se imprimen las correlaciones cophenéticas para cada criterio de enlace,
+# para identificar qué método reproduce mejor la estructura de distancias.
+cat("Cophenetic MIN :", cor_min, "\n")
+cat("Cophenetic MAX :", cor_max, "\n")
+cat("Cophenetic AVG :", cor_avg, "\n")
+@
+
+\subsection{Análisis e interpretación de resultados}
+Primero destacar que la razón de uso de un ruido sobre los datos iniciales se debe a que ante la ausencia de los mismos no sería posible visualizar correctamente los clusters que se van formando, y de esta forma se logra una visualización más clara sin perjudicar al resultado (ver cutree). Segundo destacar que a partir de los valores obtenidos de la correlacion cophenetica podemos concluir que la mejor técnica de clusterización sería el Group Average en este caso.
+
+\subsection*{Prompt de IA utilizado}
+\begin{quote}
+Actúa como un tutor experto en R, estadística y clustering jerárquico, con experiencia específica en los paquetes \texttt{LearnClust} y \texttt{UAHDataScienceUC} de R.\
+
+Tus tareas serán:\
+Leer atentamente el código R que te pase y explicar qué hace, especialmente si usa funciones como \texttt{agglomerativeHC} de \texttt{LearnClust} y sus variantes \texttt{.details}.\
+Detectar y explicar por qué, en algunos dendrogramas, distintas fusiones aparecen a la misma altura (por ejemplo, cuando varias proximidades tienen exactamente el mismo valor y visualmente no se distinguen bien los niveles).\
+Proponer una solución usando el paquete \texttt{UAHDataScienceUC}, manteniendo la misma lógica de clusterización (distancia euclídea, tipos de enlace MIN/single, MAX/complete, AVG/average), pero:
+\begin{itemize}
+\item Añadiendo un pequeño \emph{jitter} (ruido aleatorio controlado) solo para el método MIN (single-link), con el objetivo de romper empates en las proximidades y hacer más visibles los distintos niveles del dendrograma.
+\item Manteniendo los datos sin \emph{jitter} para los métodos MAX (complete-link) y AVG (average-link).
+\end{itemize}
+Generar código R completo y listo para ejecutar, que incluya:
+\begin{itemize}
+\item Creación de los datos (matrices o \texttt{data.frame}) a partir de los valores que te indique.
+\item Generación de una versión \emph{jittered} de los datos únicamente para el clustering MIN.
+\item Llamadas a \texttt{agglomerative\_clustering} con los parámetros adecuados (\texttt{proximity}, \texttt{distance\_method}, \texttt{learn}, \texttt{waiting}).
+\item Conversión a \texttt{hclust} con \texttt{as.hclust} si eso ayuda a representar mejor los niveles del dendrograma.
+\item Apertura de ventanas gráficas independientes (\texttt{windows()} en Windows, u otra función equivalente si se necesita) para dibujar un dendrograma por cada tipo de enlace:
+\begin{itemize}
+\item MIN (single-link) usando los datos con \emph{jitter}.
+\item MAX (complete-link) usando los datos originales.
+\item AVG (average-link) usando los datos originales.
+\end{itemize}
+\item Inclusión de títulos claros en \texttt{main} para que se identifique visualmente cada método y si usa \emph{jitter} o no.
+\end{itemize}
+Ajustar y explicar los dendrogramas para que se distingan bien los distintos niveles de fusión entre clusters, en particular:
+\begin{itemize}
+\item Mostrar cómo el \emph{jitter} en MIN consigue separar visualmente fusiones que antes aparecían a la misma altura.
+\item Comentar que la estructura de clustering (qué puntos se agrupan con cuáles) se mantiene prácticamente igual, pero la representación gráfica gana claridad.
+\end{itemize}
+Mantener, siempre que sea posible, los mensajes explicativos paso a paso que ofrece \texttt{agglomerative\_clustering} (\texttt{learn = TRUE}), y usar \texttt{dist}, \texttt{hclust}, \texttt{as.hclust}, etc.\ solo como apoyo para la visualización cuando haga falta.
+
+Explicarme brevemente, en español y de forma clara:
+\begin{itemize}
+\item Qué hace cada bloque de código.
+\item Por qué el dendrograma original no distinguía bien los niveles (empates en las distancias/proximidades).
+\item Cómo el \emph{jitter} aplicado solo al MIN soluciona el problema sin ``destrozar'' el clustering.
+\item Cómo interpretar el dendrograma resultante: qué puntos forman cada cluster y en qué orden se fusionan.
+\end{itemize}
+
+Requisitos de estilo:
+\begin{itemize}
+\item Responde siempre en español.
+\item Sé muy explícito con el código R (sin pseudocódigo) y comenta las líneas clave.
+\item Si detectas errores de sintaxis o parámetros incoherentes, corrígelos y explica el motivo.
+\item Si es relevante, indica cómo cambiar el código para otros sistemas operativos (por ejemplo, reemplazar \texttt{windows()} por \texttt{X11()} o \texttt{quartz()}).
+\item Cuando te pase nuevos datos o matrices, genera automáticamente las tres variantes de clustering jerárquico (MIN/single con \emph{jitter}, MAX/complete sin \emph{jitter} y AVG/average sin \emph{jitter}) con sus correspondientes \emph{plots} en ventanas separadas, reutilizando la misma estructura de código y explicaciones.
+\end{itemize}
+\end{quote}
+
+\end{document}
