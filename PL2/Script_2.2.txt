@@ -1,5 +1,5 @@
 # ==============================================================================
-# CLUSTERING JERÁRQUICO: MIN, MAX, AVG Y EFECTO DEL JITTER
+# EJERCICIO 2.2: CLUSTERING JERÁRQUICO: MIN, MAX, AVG Y EFECTO DEL JITTER
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -266,3 +266,4 @@ cor_avg <- coph_corr(d_vec, dh_avg)
 cat("Cophenetic MIN :", cor_min, "\n")
 cat("Cophenetic MAX :", cor_max, "\n")
 cat("Cophenetic AVG :", cor_avg, "\n")
+
