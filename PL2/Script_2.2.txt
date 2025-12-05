@@ -184,6 +184,15 @@ plot(as.hclust(cl_avg_original), main = "AVG (average-link)")
 windows()
 plot(as.hclust(cl_min_jitter), main = "MIN (single-link) con jitter")
 
+# ------------------------------------------------------------------------------
+# DENDROGRAMA PARA MIN (single-link) SIN JITTER
+# ------------------------------------------------------------------------------
+
+# También se abre una cuarta ventana gráfica para mostrar el dendrograma
+# del clustering con enlace mínimo aplicado a los datos originales.
+windows()
+plot(as.hclust(cl_min_original), main = "MIN (single-link) sin jitter")
+
 
 
 
@@ -266,4 +275,3 @@ cor_avg <- coph_corr(d_vec, dh_avg)
 cat("Cophenetic MIN :", cor_min, "\n")
 cat("Cophenetic MAX :", cor_max, "\n")
 cat("Cophenetic AVG :", cor_avg, "\n")
-
