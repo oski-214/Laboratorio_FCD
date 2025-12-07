@@ -22,6 +22,112 @@
 \tableofcontents
 \newpage
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ejercicio 1.3: Clasificación Supervisada (Árboles de Decisión)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+En este ejercicio guiado se realiza un análisis de clasificación supervisada utilizando árboles de decisión. El objetivo es construir un modelo capaz de predecir la calificación global (\textit{C.G}) de un estudiante (Aprobado/Suspenso) basándose en sus notas parciales.
+
+\subsubsection{1. Descripción del conjunto de datos}
+El conjunto de datos de entrenamiento consta de 9 observaciones. Las variables son cualitativas ordinales:
+\begin{itemize}
+    \item \textbf{Variables Predictoras:} \textit{Teoria}, \textit{Laboratorio}, \textit{Practicas} (Valores: A, B, C, D).
+    \item \textbf{Variable Clase:} \textit{C.G} (Valores: Ap, Ss).
+\end{itemize}
+
+\subsubsection{2. Fundamento Teórico y Funciones de R}
+Para la construcción del árbol se utiliza la librería \texttt{rpart}, que implementa una variante del algoritmo CART (\textit{Classification and Regression Trees}).
+\begin{itemize}
+    \item \textbf{\texttt{rpart(formula, data, method, control)}}: Función principal.
+    \begin{itemize}
+        \item \texttt{formula = C.G ~ .}: Indica que \textit{C.G} es la variable a predecir usando todas las demás.
+        \item \texttt{method = "class"}: Especifica un árbol de clasificación.
+        \item \texttt{control = rpart.control(minsplit = 1)}: Parámetro crítico en muestras pequeñas ($N=9$). Fuerza al algoritmo a intentar dividir nodos incluso si solo contienen 1 observación, permitiendo obtener un árbol puro que clasifique correctamente todos los ejemplos de entrenamiento.
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{3. Implementación en R y Resultados}
+
+A continuación se muestra el código para generar el modelo y la salida textual del árbol generado.
+
+<<ejercicio1_3_arboles, echo=TRUE, results=verbatim>>=
+# Carga de la librería
+library(rpart)
+
+# 1. Creación del conjunto de datos
+calificaciones <- data.frame(
+  Teoria = c("A", "A", "D", "D", "B", "C", "B", "C", "B"),
+  Laboratorio = c("A", "B", "D", "D", "C", "B", "B", "D", "A"),
+  Practicas = c("B", "D", "C", "A", "B", "B", "A", "C", "C"),
+  C.G = c("Ap", "Ss", "Ss", "Ss", "Ss", "Ap", "Ap", "Ss", "Ss")
+)
+
+print("Datos de entrenamiento:")
+print(calificaciones)
+
+# 2. Generación del Modelo
+# Usamos minsplit=1 para asegurar que el árbol crezca completamente
+arbol <- rpart(C.G ~ ., data = calificaciones,
+               method = "class",
+               control = rpart.control(minsplit = 1))
+
+# 3. Visualización de la estructura del árbol
+print("Estructura del Árbol generado (rpart):")
+print(arbol)
+@
+
+\subsubsection{4. Análisis de los Resultados}
+
+La salida textual del objeto \texttt{rpart} describe la estructura jerárquica del árbol de decisión generado. A continuación se interpreta cada nodo del resultado obtenido:
+
+\begin{itemize}
+    \item \textbf{Nodo 1 (Raíz):} Contiene las 9 observaciones completas.
+    \begin{itemize}
+        \item La clase mayoritaria inicial es \textbf{Ss} (Suspenso), con una probabilidad de 0.67 (6 suspensos frente a 3 aprobados).
+        \item El algoritmo selecciona la variable \textbf{Laboratorio} como la que mejor discrimina en este primer nivel.
+    \end{itemize}
+
+    \item \textbf{División por Laboratorio:}
+    \begin{itemize}
+        \item \textbf{Nodo 3 (Derecha):} Si \texttt{Laboratorio} es \textbf{C} o \textbf{D}.
+        \begin{itemize}
+            \item Contiene 4 observaciones. Todas son \textbf{Ss}.
+            \item El error (loss) es 0 y las probabilidades son (0.00, 1.00).
+            \item Es un \textbf{nodo terminal (*)}, lo que significa que el árbol decide aquí: \emph{Si tienes C o D en Laboratorio, la predicción es Suspenso}.
+        \end{itemize}
+
+        \item \textbf{Nodo 2 (Izquierda):} Si \texttt{Laboratorio} es \textbf{A} o \textbf{B}.
+        \begin{itemize}
+            \item Contiene 5 observaciones. La clase mayoritaria ahora es \textbf{Ap} (probabilidad 0.60).
+            \item El algoritmo necesita seguir dividiendo para mejorar la pureza, usando ahora la variable \textbf{Practicas}.
+        \end{itemize}
+    \end{itemize}
+
+    \item \textbf{División por Prácticas (desde el Nodo 2):}
+    \begin{itemize}
+        \item \textbf{Nodo 4:} Si \texttt{Practicas} es \textbf{A} o \textbf{B}.
+        \begin{itemize}
+            \item Contiene 3 observaciones. Todas son \textbf{Ap} (probabilidad 1.00).
+            \item Es un \textbf{nodo terminal (*)}. Decisión: \emph{Aprobado}.
+        \end{itemize}
+
+        \item \textbf{Nodo 5:} Si \texttt{Practicas} es \textbf{C} o \textbf{D}.
+        \begin{itemize}
+            \item Contiene 2 observaciones. Todas son \textbf{Ss} (probabilidad 1.00).
+            \item Es un \textbf{nodo terminal (*)}. Decisión: \emph{Suspenso}.
+        \end{itemize}
+    \end{itemize}
+\end{itemize}
+
+\paragraph{Conclusión del modelo.}
+El árbol generado ha logrado clasificar correctamente el 100\% de los ejemplos de entrenamiento (error 0 en todos los nodos terminales). Curiosamente, la variable \textbf{Teoría} no ha sido necesaria para la clasificación; el modelo determina que con saber las notas de Laboratorio y Prácticas es suficiente para determinar la Calificación Global en este conjunto de datos.
+
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+I need to perform a supervised classification analysis in R for Exercise 1.3. The dataset consists of 9 student records with qualitative ordinal variables: 'Teoria', 'Laboratorio', 'Practicas' (grades A, B, C, D) and a target class 'C.G' (Global Grade: Ap, Ss). Please write an R script using the \texttt{rpart} library to build a decision tree. The script must define the dataframe manually to ensure reproducibility. It is crucial to set the \texttt{minsplit} parameter to 1 in \texttt{rpart.control} to force the tree to split even with small sample sizes, allowing for a complete classification of the training set. Finally, print the tree object to display the text-based structure of the nodes and splits.
+\end{quote}
+
 \section{Ejercicio 2.2: Clustering jerárquico MIN, MAX, AVG y efecto del jitter}
 
 \subsection{Descripción del conjunto de datos}
