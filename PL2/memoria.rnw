@@ -394,5 +394,190 @@ Requisitos de estilo:
 \item Cuando te pase nuevos datos o matrices, genera automáticamente las tres variantes de clustering jerárquico (MIN/single con \emph{jitter}, MAX/complete sin \emph{jitter} y AVG/average sin \emph{jitter}) con sus correspondientes \emph{plots} en ventanas separadas, reutilizando la misma estructura de código y explicaciones.
 \end{itemize}
 \end{quote}
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Ejercicio 2.3: Clasificación Supervisada Manual (Árboles de Decisión)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+En este ejercicio autónomo se construye un árbol de decisión de forma manual para clasificar tipos de vehículos. Se implementa la lógica del algoritmo de particionamiento recursivo (siguiendo la filosofía de algoritmos como Hunt o ID3/CART) pero programando explícitamente el cálculo de la impureza y la ganancia de información.
+
+\subsubsection{1. Fundamento Teórico}
+Los árboles de decisión clasifican instancias ordenándolas desde el nodo raíz hasta algún nodo hoja, el cual proporciona la clasificación de la instancia. Cada nodo del árbol especifica una prueba sobre algún atributo de la instancia, y cada rama que desciende de ese nodo corresponde a uno de los posibles valores de dicho atributo.
+
+Para seleccionar qué atributo es el mejor para dividir los datos en cada paso, utilizamos medidas de impureza. En este ejercicio, empleamos el \textbf{Índice de Gini}, que mide la frecuencia con la que un elemento aleatorio del conjunto sería identificado incorrectamente si se etiquetara aleatoriamente según la distribución de etiquetas en el subconjunto.
+
+\[ Gini(S) = 1 - \sum_{i=1}^{c} p_i^2 \]
+Donde $p_i$ es la probabilidad de que una tupla en $S$ pertenezca a la clase $i$.
+
+La \textbf{Ganancia de Información} (o reducción de impureza) al dividir un nodo $S$ usando un atributo $A$ se calcula como:
+\[ Ganancia(S, A) = Gini(S) - \sum_{v \in Values(A)} \frac{|S_v|}{|S|} Gini(S_v) \]
+El algoritmo selecciona en cada paso el atributo que maximiza esta ganancia (o minimiza el Gini ponderado resultante).
+
+\subsubsection{2. Definición del Conjunto de Datos}
+El conjunto de datos consta de 10 observaciones con las siguientes características:
+\begin{itemize}
+    \item \textbf{Atributos Predictoras:} \textit{TipoCarnet} (A, B, N), \textit{Ruedas} (2, 4, 6), \textit{Pasajeros} (1, 2, 4, 5, 6).
+    \item \textbf{Clase Objetivo:} \textit{Vehiculo} (Bicicleta, Camion, Coche, Moto).
+\end{itemize}
+
+<<ejercicio2_3_datos, echo=TRUE, results=verbatim>>=
+# Definición del Dataset
+datos_vehiculos <- data.frame(
+  Carnet = c("B", "A", "N", "B", "B", "B", "N", "B", "B", "N"),
+  Ruedas = c(4, 2, 2, 6, 4, 4, 2, 2, 6, 2),
+  Pasajeros = c(5, 2, 1, 4, 6, 4, 2, 1, 2, 1),
+  Vehiculo = c("Coche", "Moto", "Bicicleta", "Camion", "Coche", "Coche",
+               "Bicicleta", "Moto", "Camion", "Bicicleta"),
+  stringsAsFactors = FALSE
+)
+print(datos_vehiculos)
+@
+
+\subsubsection{3. Funciones Implementadas}
+Para realizar el análisis manual, se han definido dos funciones clave que encapsulan la lógica matemática de la teoría:
+
+\begin{enumerate}
+    \item \textbf{\texttt{calcular\_gini(clases)}}:
+    \begin{itemize}
+        \item \textit{Objetivo:} Calcular la impureza de un nodo específico.
+        \item \textit{Argumentos:} Un vector con las etiquetas de clase de las observaciones en ese nodo.
+        \item \textit{Funcionamiento:} Genera una tabla de frecuencias relativas ($p_i$) para cada clase y aplica la fórmula $1 - \sum p_i^2$. Si el nodo es puro (solo una clase), devuelve 0.
+    \end{itemize}
+
+    \item \textbf{\texttt{evaluar\_division(datos, atributo, clase\_objetivo)}}:
+    \begin{itemize}
+        \item \textit{Objetivo:} Simular la división del nodo por un atributo específico y calcular la ganancia.
+        \item \textit{Argumentos:} El dataframe actual, el nombre del atributo candidato y el nombre de la variable clase.
+        \item \textit{Funcionamiento:}
+        1. Calcula el Gini inicial del nodo padre.
+        2. Itera sobre cada valor único del atributo, creando subconjuntos (ramas).
+        3. Calcula el Gini de cada rama y realiza una suma ponderada según el número de elementos en cada rama.
+        4. Devuelve la ganancia neta (Gini Inicial - Gini Ponderado).
+    \end{itemize}
+\end{enumerate}
+
+<<ejercicio2_3_funciones, echo=TRUE, results=hide>>=
+# Función auxiliar: Cálculo del Índice de Gini
+calcular_gini <- function(clases) {
+  n <- length(clases)
+  if (n == 0) return(0)
+
+  # Probabilidades de cada clase
+  conteos <- table(clases)
+  proporciones <- conteos / n
+
+  # Fórmula: 1 - suma(pi^2)
+  gini <- 1 - sum(proporciones^2)
+  return(gini)
+}
+
+# Función principal: Evaluar la calidad de dividir por un atributo
+evaluar_division <- function(datos, atributo, clase_objetivo) {
+  valores <- unique(datos[[atributo]])
+  n_total <- nrow(datos)
+
+  # Impureza antes de dividir
+  gini_inicial <- calcular_gini(datos[[clase_objetivo]])
+  gini_ponderado <- 0
+
+  cat(sprintf("\n[Analizando atributo: %s]\n", atributo))
+
+  # Iteramos por cada posible rama (valor del atributo)
+  for (val in valores) {
+    subconjunto <- datos[datos[[atributo]] == val, ]
+    n_sub <- nrow(subconjunto)
+    gini_sub <- calcular_gini(subconjunto[[clase_objetivo]])
+
+    # Acumulamos el Gini ponderado
+    gini_ponderado <- gini_ponderado + (n_sub / n_total) * gini_sub
+
+    clases_rama <- paste(unique(subconjunto[[clase_objetivo]]), collapse=",")
+    cat(sprintf("   -> Rama '%s' (n=%d): Clases={%s} | Gini=%.3f\n",
+                val, n_sub, clases_rama, gini_sub))
+  }
+
+  ganancia <- gini_inicial - gini_ponderado
+  cat(sprintf("   => Ganancia Total: %.3f (Gini Ponderado: %.3f)\n",
+              ganancia, gini_ponderado))
+
+  return(ganancia)
+}
+@
+
+\subsubsection{4. Construcción del Árbol y Análisis de Resultados}
+
+El proceso de construcción se realiza de manera iterativa. En cada paso (nodo), evaluamos todos los atributos disponibles y seleccionamos el que ofrece la mayor ganancia de información.
+
+\paragraph{Paso 1: Selección del Nodo Raíz.}
+Evaluamos los tres atributos disponibles con el conjunto de datos completo (10 observaciones).
+
+<<ejercicio2_3_paso1, echo=TRUE, results=verbatim>>=
+cat("--- PASO 1: Evaluación del Nodo Raíz ---\n")
+g_carnet <- evaluar_division(datos_vehiculos, "Carnet", "Vehiculo")
+g_ruedas <- evaluar_division(datos_vehiculos, "Ruedas", "Vehiculo")
+g_pasajeros <- evaluar_division(datos_vehiculos, "Pasajeros", "Vehiculo")
+@
+
+\textbf{Análisis del Paso 1:}
+\begin{itemize}
+    \item \textbf{Carnet:} Ganancia 0.373. Separa bien, pero mezcla clases en la rama 'B'.
+    \item \textbf{Ruedas: Ganancia 0.500. Es el valor máximo.}
+    \item \textbf{Pasajeros:} Ganancia 0.307.
+\end{itemize}
+
+\textbf{Decisión:} Seleccionamos \textbf{Ruedas} como nodo raíz. Analizando sus ramas:
+\begin{itemize}
+    \item Si Ruedas=4: La impureza es 0 (Solo hay Coche). $\to$ \textbf{Nodo Hoja: Coche}.
+    \item Si Ruedas=6: La impureza es 0 (Solo hay Camion). $\to$ \textbf{Nodo Hoja: Camion}.
+    \item Si Ruedas=2: La impureza es 0.480 (Mezcla de Moto y Bicicleta). $\to$ \textbf{Necesita subdivisión}.
+\end{itemize}
+
+\paragraph{Paso 2: Subdivisión de la rama 'Ruedas = 2'.}
+Filtramos el dataset para quedarnos solo con las observaciones donde Ruedas es 2 y evaluamos los atributos restantes (Carnet y Pasajeros) para desempatar entre Moto y Bicicleta.
+
+<<ejercicio2_3_paso2, echo=TRUE, results=verbatim>>=
+cat("\n--- PASO 2: Evaluación de la rama 'Ruedas = 2' ---\n")
+# Filtramos el subconjunto
+datos_rama_ruedas2 <- datos_vehiculos[datos_vehiculos$Ruedas == 2, ]
+print(datos_rama_ruedas2)
+
+# Evaluamos atributos restantes
+g2_carnet <- evaluar_division(datos_rama_ruedas2, "Carnet", "Vehiculo")
+g2_pasajeros <- evaluar_division(datos_rama_ruedas2, "Pasajeros", "Vehiculo")
+@
+
+\textbf{Análisis del Paso 2:}
+\begin{itemize}
+    \item \textbf{Carnet: Ganancia 0.480.} El Gini ponderado baja a 0.000. Esto significa que este atributo separa perfectamente las clases restantes.
+    \begin{itemize}
+        \item Carnet A $\to$ Moto.
+        \item Carnet B $\to$ Moto.
+        \item Carnet N $\to$ Bicicleta.
+    \end{itemize}
+    \item \textbf{Pasajeros:} Ganancia 0.013. No logra separar bien las clases (hay bicicletas y motos con 1 pasajero).
+\end{itemize}
+
+\textbf{Decisión:} Seleccionamos \textbf{Carnet} para dividir este nodo.
+
+\subsubsection{5. Estructura Final del Árbol}
+Tras el análisis manual paso a paso, el árbol de decisión resultante es:
+
+\begin{verbatim}
+1. ¿Ruedas?
+   |-- 4: Coche (Hoja Pura)
+   |-- 6: Camion (Hoja Pura)
+   |-- 2: ¿Carnet?
+       |-- A: Moto (Hoja Pura)
+       |-- B: Moto (Hoja Pura)
+       |-- N: Bicicleta (Hoja Pura)
+\end{verbatim}
+
+Este modelo clasifica correctamente el 100\% de las instancias de entrenamiento utilizando un máximo de dos niveles de profundidad.
+
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+For Exercise 2.3 (Autonomous Supervised Classification), I need to construct a decision tree manually in R for a vehicle dataset with attributes 'Carnet', 'Ruedas', 'Pasajeros' and class 'Vehiculo'. Please provide a script that defines the dataset manually and implements two helper functions: \texttt{calcular\_gini} (to compute impurity) and \texttt{evaluar\_division} (to iterate through attribute values and calculate Information Gain). The script should not use \texttt{rpart}, but rather perform the calculations step-by-step: first evaluating all attributes for the root node, analyzing the results to pick the best splitter, filtering the data for any impure branch, and repeating the evaluation process for the next level. The output must show the Gini and Gain values to justify the decisions.
+\end{quote}
 
 \end{document}
