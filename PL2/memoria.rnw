@@ -419,6 +419,226 @@ La varianza explicada del 84.8\% confirma que la partición es de alta calidad y
 \newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Ejercicio 1.2: Clasificación no supervisada (Clusterización jerárquica aglomerativa)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Descripción del conjunto de datos}
+
+El conjunto de datos del Ejercicio 1.2 está formado por \textbf{6 observaciones}, cada una de ellas correspondiente de nuevo a un estudiante de la asignatura. Para cada estudiante se registran dos calificaciones numéricas:
+
+\begin{itemize}
+  \item \textbf{Teoría}: rendimiento del estudiante en la parte teórica.
+  \item \textbf{Laboratorio}: rendimiento en las actividades de laboratorio.
+\end{itemize}
+
+Al igual que en el Ejercicio 1.1, ambas variables se interpretan como coordenadas de un punto en el plano bidimensional \((\text{Teoría}, \text{Laboratorio})\). En este caso, las calificaciones no son enteras, sino valores reales, lo que permite representar con mayor precisión diferencias intermedias en el rendimiento de los estudiantes. Cada estudiante queda, por tanto, representado como un par ordenado en \(\mathbb{R}^2\), sobre el que se aplicará posteriormente un método de \textbf{clusterización jerárquica aglomerativa}. 
+
+Las 6 observaciones utilizadas en el ejercicio son las siguientes:
+
+\[
+\{(0.89, 2.94),\ (4.36, 5.21),\ (3.75, 1.12),\ (6.25, 3.14),\ (4.10, 1.80),\ (3.90, 4.27)\}
+\]
+
+Desde el punto de vista de R, estos datos se almacenan inicialmente en una matriz de dimensión \(2 \times 6\), donde cada columna representa a un estudiante y cada fila a una de las dos variables. Posteriormente, la matriz se transpone para obtener una estructura de \(6 \times 2\).
+
+\subsection{Fundamento teórico}
+
+\paragraph{Idea general del algoritmo.}
+
+El algoritmo jerárquico aglomerativo comienza considerando cada observación como un
+clúster independiente y, en cada iteración, fusiona los dos clústeres más próximos hasta que
+finalmente solo queda uno. El procedimiento puede describirse en dos pasos que se repiten:
+
+\begin{enumerate}
+  \item \textbf{Paso A: Cálculo de la matriz de distancias entre clústeres.}\\
+        En la primera iteración cada punto es un clúster, por lo que este paso equivale a
+        calcular todas las distancias entre parejas de observaciones. En las siguientes
+        iteraciones, la matriz recoge las distancias entre los clústeres formados hasta el
+        momento.
+        
+        En este ejercicio se emplea la \textbf{distancia euclídea} en \(\mathbb{R}^2\). Dadas dos
+        observaciones \(x_i = (x_{i1}, x_{i2})\) y \(x_j = (x_{j1}, x_{j2})\), su distancia viene dada por:
+        \[
+           d(x_i, x_j) = \sqrt{(x_{i1} - x_{j1})^2 + (x_{i2} - x_{j2})^2}.
+        \]
+
+  \item \textbf{Paso B: Fusión de los dos clústeres más próximos.}\\
+        Una vez calculada la matriz de distancias, se ordenan las proximidades y se selecciona
+        el par de clústeres \((C_r, C_s)\) con menor distancia. Se fusionan en un nuevo
+        clúster \(C_{rs}\) y se vuelve al Paso A, recalculando las distancias entre el nuevo
+        clúster y el resto, hasta que todos los puntos quedan agrupados en un único clúster.
+\end{enumerate}
+
+\paragraph{Proximidad entre clústeres: criterios MIN y MAX.}
+
+La definición de \emph{distancia entre clústeres} no es única. Dependiendo de cómo se
+mida la proximidad entre dos clústeres \(C_r\) y \(C_s\), se obtiene un algoritmo de HAC
+distinto. En esta práctica se utilizan dos criterios:
+
+\begin{itemize}
+  \item \textbf{Enlace MIN (Single Link).}\\
+        La distancia entre dos clústeres se define como la distancia mínima entre cualquier
+        pareja de puntos, uno en cada clúster:
+        \[
+          d_{\text{MIN}}(C_r, C_s) = \min_{x \in C_r,\; y \in C_s} d(x,y).
+        \]
+
+  \item \textbf{Enlace MAX (Complete Link).}\\
+        La distancia entre dos clústeres se define como la distancia máxima entre pares de
+        puntos de ambos clústeres:
+        \[
+          d_{\text{MAX}}(C_r, C_s) = \max_{x \in C_r,\; y \in C_s} d(x,y).
+        \]
+\end{itemize}
+
+\subsection{Implementación en R y resultados}
+
+A continuación se muestra el código utilizado para aplicar el algoritmo de \textbf{clusterización jerárquica aglomerativa} sobre el conjunto de datos del Ejercicio 1.2. En este caso se emplean las funciones \texttt{agglomerativeHC()} y \texttt{agglomerativeHC.details()} del paquete \texttt{LearnClust}, configuradas con distancia euclídea y dos criterios de enlace: \textbf{MIN} (single link) y \textbf{MAX} (complete link).
+
+<<ejercicio1_2_hac, echo=TRUE, results=verbatim>>=
+# ======================================================================
+# CLUSTERING JERÁRQUICO AGLOMERATIVO (EJERCICIO 1.2)
+# Distancia: EUC (euclídea) | Enlaces: MIN y MAX
+# ======================================================================
+
+# Instalación del paquete 
+# install.packages("LearnClust")
+
+# Carga de la librería que contiene agglomerativeHC()
+library(LearnClust)
+
+# Matriz con las 6 observaciones bidimensionales
+m <- matrix(
+  c(0.89, 2.94,
+    4.36, 5.21,
+    3.75, 1.12,
+    6.25, 3.14,
+    4.10, 1.80,
+    3.90, 4.27),
+  2, 6
+)
+
+# Transposición para que cada fila sea una observación (6 × 2)
+(m <- t(m))
+
+# Clustering jerárquico usando distancia euclídea y criterio de enlace MIN
+agglomerativeHC(m, "EUC", "MIN")
+
+# Segunda llamada al clustering MIN (se mantiene para reproducir la práctica)
+agglomerativeHC(m, "EUC", "MIN")
+
+# Detalles del proceso de fusión paso a paso (enlace MIN)
+agglomerativeHC.details(m, "EUC", "MIN")
+
+# Detalles del proceso de fusión paso a paso (enlace MAX)
+agglomerativeHC.details(m, "EUC", "MAX")
+@
+
+\paragraph{Descripción del código y funciones utilizadas.}
+
+\begin{itemize}
+  \item \textbf{\texttt{library(LearnClust)}}\\
+  Carga el paquete \texttt{LearnClust}, que proporciona las funciones específicas para clustering jerárquico utilizadas en este ejercicio:
+  \texttt{agglomerativeHC()} y \texttt{agglomerativeHC.details()}.
+
+  \item \textbf{\texttt{matrix()} y \texttt{t()}}\\
+  Se construye primero una matriz de dimensión \(2 \times 6\), donde cada columna contiene las coordenadas \((\text{Teoría}, \text{Laboratorio})\) de un estudiante.  
+  Posteriormente, se aplica la transpuesta:
+  \begin{verbatim}
+(m <- t(m))
+  \end{verbatim}
+  de forma que la estructura final es \(6 \times 2\): cada \textbf{fila} es un estudiante y cada \textbf{columna} una variable numérica.
+
+  \item \textbf{\texttt{agglomerativeHC(m, "EUC", "MIN")}}\\
+  Ejecuta el algoritmo de clustering jerárquico aglomerativo sobre la matriz \texttt{m} usando:
+  \begin{itemize}
+    \item \texttt{"EUC"}: distancia euclídea entre observaciones.
+    \item \texttt{"MIN"}: criterio de enlace mínimo (single link), donde la distancia entre dos clústeres se define como la mínima distancia entre dos puntos, uno de cada clúster.
+  \end{itemize}
+  La función devuelve una lista con:
+  \begin{itemize}
+    \item \texttt{\$dendrogram}: información necesaria para construir el dendrograma.
+    \item \texttt{\$clusters}: los clústeres formados en cada paso del proceso aglomerativo.
+    \item \texttt{\$groupedClusters}: tabla que indica qué clústeres se van fusionando en cada iteración.
+  \end{itemize}
+
+  \item \textbf{\texttt{agglomerativeHC.details(m, "EUC", "MIN")}}\\
+  Muestra por consola el funcionamiento interno del algoritmo con enlace MIN, paso a paso. Para cada iteración:
+  \begin{itemize}
+    \item Imprime la \textbf{matriz de distancias} entre los clústeres activos.
+    \item Indica la \textbf{distancia mínima} encontrada.
+    \item Señala qué \textbf{clústeres} se fusionan.
+    \item Muestra el \textbf{nuevo clúster} resultante de la fusión.
+  \end{itemize}
+  Este proceso se repite hasta que todos los datos quedan agrupados en un único clúster.
+
+  \item \textbf{\texttt{agglomerativeHC.details(m, "EUC", "MAX")}}\\
+  Ejecuta exactamente el mismo procedimiento, pero usando el criterio de enlace MAX (complete link):
+  \[
+    d_{\text{MAX}}(C_r, C_s) = \max_{x \in C_r,\; y \in C_s} d(x,y),
+  \]
+  por lo que las matrices de distancia y las fusiones pueden diferir de las obtenidas con enlace MIN, especialmente en los pasos posteriores, cuando los clústeres ya contienen varias observaciones.
+\end{itemize}
+
+\subsection{Análisis e interpretación de los resultados}
+
+La salida de las funciones \texttt{agglomerativeHC()} y \texttt{agglomerativeHC.details()} permite seguir paso a paso cómo se van formando los clústeres a partir de las 6 observaciones iniciales.
+
+\paragraph{Estructura jerárquica y primeras fusiones.}
+
+En ambos criterios de enlace (MIN y MAX), el primer paso del algoritmo es el mismo:
+
+\begin{itemize}
+  \item En el \textbf{STEP 1} se detecta que la distancia mínima entre observaciones corresponde al par
+  \((3.75, 1.12)\) y \((4.10, 1.80)\).  
+  \item Estas dos observaciones se fusionan formando el primer clúster de tamaño 2.
+\end{itemize}
+
+En el \textbf{STEP 2}, tanto con enlace MIN como con enlace MAX, el algoritmo agrupa ahora las observaciones
+\((4.36, 5.21)\) y \((3.90, 4.27)\), que forman otro clúster de tamaño 2 situado en la zona de “buen rendimiento” en ambas componentes (Teoría y Laboratorio).
+
+\paragraph{Crecimiento de los clústeres con enlace MIN (single link).}
+
+Con el criterio MIN, la proximidad entre clústeres se mide por la \textbf{distancia mínima} entre sus puntos. Esto da lugar a un efecto de ``encadenamiento'' (\emph{chaining}):
+
+\begin{itemize}
+  \item En el \textbf{STEP 3}, el clúster de puntos bajos \((3.75, 1.12)\)--\((4.10, 1.80)\) se une con el clúster de puntos altos \((4.36, 5.21)\)--\((3.90, 4.27)\), formando un único clúster de 4 elementos que cubre un rango amplio del plano.
+  \item En el \textbf{STEP 4}, se incorpora la observación \((6.25, 3.14)\) a este clúster de 4 puntos, de nuevo buscando el enlace que minimiza la distancia con alguno de los elementos del clúster ya formado.
+  \item Finalmente, en el \textbf{STEP 5}, se añade la observación restante \((0.89, 2.94)\), completando el clúster único de las 6 observaciones.
+\end{itemize}
+
+El resultado es un gran clúster que se va extendiendo mediante la unión de puntos o grupos que están relativamente cerca de \emph{alguno} de los elementos ya agrupados, incluso si el resto del clúster está lejos. Esto es característico del single link: tiende a construir clústeres alargados, conectando puntos a través de “cadenas” de distancias pequeñas.
+
+\paragraph{Crecimiento de los clústeres con enlace MAX (complete link).}
+
+Con el criterio MAX, la distancia entre clústeres se define como la \textbf{distancia máxima} entre pares de puntos de ambos clústeres. Esto favorece clústeres más compactos:
+
+\begin{itemize}
+  \item Los \textbf{STEP 1} y \textbf{STEP 2} coinciden con el caso MIN (se forman los mismos clústeres de tamaño 2).
+  \item En el \textbf{STEP 3}, el criterio MAX decide fusionar primero la observación \((6.25, 3.14)\) con el clúster de rendimiento alto \((4.36, 5.21)\)--\((3.90, 4.27)\). Geométricamente, estos tres puntos forman un grupo bastante compacto en la parte superior derecha del plano.
+  \item En el \textbf{STEP 4}, la observación \((0.89, 2.94)\) se une al clúster de puntos bajos \((3.75, 1.12)\)--\((4.10, 1.80)\), construyendo un segundo clúster con notas medias/bajas.
+  \item Finalmente, en el \textbf{STEP 5}, se fusionan estos dos grandes clústeres, obteniendo el clúster final con las 6 observaciones.
+\end{itemize}
+
+\paragraph{Posible elección de número de clústeres.}
+
+Se pueden identificar de forma natural \textbf{dos grandes grupos}:
+
+\begin{itemize}
+  \item Un clúster de \textbf{rendimiento bajo/medio}: formado por los puntos cercanos a la parte baja del plano \((3.75, 1.12)\), \((4.10, 1.80)\) y, según el criterio, también \((0.89, 2.94)\).
+  \item Un clúster de \textbf{rendimiento alto}: formado por \((4.36, 5.21)\), \((3.90, 4.27)\) y \((6.25, 3.14)\), situados en la zona de mejores calificaciones.
+\end{itemize}
+
+Ambos criterios de enlace convergen a una estructura muy similar: un grupo de estudiantes con mejores calificaciones y otro con calificaciones más discretas. La diferencia entre MIN y MAX se observa principalmente en el orden de las fusiones intermedias.
+
+\paragraph{Conclusión.}
+
+El análisis jerárquico aglomerativo confirma que las 6 observaciones se organizan de manera natural en dos grupos principales, coherentes con el rendimiento global de los estudiantes. El uso de distancia euclídea en \(\mathbb{R}^2\) permite que el algoritmo aproveche directamente la estructura geométrica de los datos, mientras que la comparación entre los criterios de enlace MIN y MAX ilustra cómo distintas definiciones de “distancia entre clústeres” pueden modificar el proceso de fusión sin alterar la interpretación cualitativa principal del conjunto de datos.
+
+
+\newpage
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Ejercicio 1.3: Clasificación Supervisada (Árboles de Decisión)}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
