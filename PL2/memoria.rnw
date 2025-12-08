@@ -1,42 +1,437 @@
-\documentclass[a4paper,12pt]{article}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% PREÁMBULO DE LATEX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\documentclass[a4paper]{article}
 
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
-\usepackage[spanish]{babel}
-\usepackage{geometry}
-\geometry{a4paper,margin=2.5cm}
-\usepackage{hyperref}
-\usepackage{graphicx}
-\usepackage{float}
-\usepackage{amsmath, amssymb}
+% --- Paquetes Esenciales ---
+\usepackage[utf8]{inputenc} % Codificación de entrada
+\usepackage[T1]{fontenc}    % Codificación de fuentes
+\usepackage[spanish]{babel} % Idioma español
+\usepackage{graphicx}       % Para insertar imágenes
+\usepackage[a4paper,margin=2.5cm]{geometry} % Márgenes
+\usepackage{Sweave}         % Estilos para Sweave
 
-\usepackage{Sweave}
+% --- Paquetes Adicionales Útiles ---
+\usepackage{amsmath}        % Mejoras para matemáticas
+\usepackage{amsfonts}       % Fuentes matemáticas
+\usepackage{hyperref}       % Links clicables
+\usepackage{float}          % Controlar posición de flotantes (figuras, tablas)
+\usepackage{csquotes}       % Para citas textuales
+\usepackage[backend=biber,style=ieee]{biblatex} % Bibliografía
 
-\title{Memoria \\ PL2}
-\author{Asier Álamo \\ Lucía Díaz \\ Edgar Alexis Conforme \\ Óscar Morán}
+\setlength{\parskip}{\baselineskip} % Un espacio entre párrafos
+
+% \addbibresource{bibliografia.bib} % Descomenta esto y crea tu archivo .bib
+
+% --- Configuración del Documento ---
+\title{Memoria: Memoria PL2 - Fundamentos de la Ciencia de Datos}
+\author{Oscar Morán, Asier Álamo, Edgar Alexis Conforme, Lucía Díaz}
 \date{\today}
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% INICIO DEL DOCUMENTO
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \begin{document}
 
-\maketitle
-\tableofcontents
+
+% --- Portada ---
+\begin{titlepage}
+    \centering
+    \vspace*{\fill}
+    {\LARGE Universidad de Alcalá \\[0.5cm]}
+    {\Large Escuela Politécnica Superior \\[1cm]}
+    {\Huge \textbf{PL2 - Fundamentos de la Ciencia de Datos} \\[1.5cm]}
+    \Large\textbf{Autor:} \\[0.3cm]
+    {\Large Oscar Morán, Asier Álamo, Edgar Alexis Conforme, Lucía Díaz \\[2cm]}
+    \textbf{Fecha:} \\[0.3cm]
+    {\Large \today} \\[1.5cm]
+    \vspace*{\fill}
+\end{titlepage}
+
+
+\newpage
+\tableofcontents % Tabla de contenido automática
 \newpage
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Ejercicio 1.1: Clasificación no supervisada (K-Means)}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Descripción del conjunto de datos}
+
+El conjunto de datos está formado por \textbf{8 observaciones}, cada una de ellas correspondiente a un estudiante. Para cada estudiante se registran dos calificaciones numéricas:
+
+\begin{itemize}
+  \item \textbf{Teoría}: nota obtenida en la parte teórica de la asignatura.
+  \item \textbf{Laboratorio}: nota obtenida en las prácticas de laboratorio.
+\end{itemize}
+
+Ambas variables son cuantitativas (en una escala discreta de 0 a 5) y se tratan como coordenadas de un punto en el plano bidimensional \((\text{Teoría}, \text{Laboratorio})\). De este modo, cada estudiante queda representado por un par ordenado que permite aplicar directamente técnicas de clustering en \(\mathbb{R}^2\).
+
+Las 8 observaciones utilizadas en el ejercicio son las siguientes:
+
+\[
+\{(4,4), (3,5), (1,2), (5,5), (0,1), (2,2), (4,5), (2,1)\}
+\]
+
+En la implementación en R, estos datos se almacenan inicialmente en una matriz de dimensión \(2 \times 8\), donde cada columna representa un estudiante y cada fila una de las dos variables (\textit{Teoría} y \textit{Laboratorio}). Posteriormente, la matriz se transpone para obtener una estructura de \(8 \times 2\), en la que cada fila corresponde a un estudiante y cada columna a una variable, formato estándar para aplicar el algoritmo \texttt{kmeans()}.
+
+El propósito del ejercicio es agrupar automáticamente a los estudiantes en clústeres de rendimiento similares, basándose únicamente en sus calificaciones de Teoría y Laboratorio, sin utilizar información de etiquetas previas (clasificación no supervisada).
+
+
+\subsection{Fundamento teórico}
+
+El objetivo del ejercicio es aplicar un método de \textbf{clasificación no supervisada} para agrupar observaciones similares sin emplear una variable clase conocida.
+
+\paragraph{Concepto de clustering por particionado.}
+Los métodos de particionado buscan dividir un conjunto de $n$ observaciones en $K$ grupos disjuntos (clústeres), de forma que:
+
+\begin{itemize}
+  \item Las observaciones dentro de un mismo clúster sean lo más \textbf{similares} posible.
+  \item Las observaciones pertenecientes a clústeres distintos sean lo más \textbf{diferentes} posible.
+\end{itemize}
+
+En el caso de K-Means, la similitud se mide mediante la \textbf{distancia euclídea} y cada clúster se representa por su \textbf{centroide}, que es el vector medio de todas las observaciones asignadas a ese clúster.
+
+\paragraph{Algoritmo K-Means.}
+El algoritmo opera iterativamente siguiendo una serie de pasos:
+
+\begin{enumerate}
+  \item \textbf{Inicialización}: Se seleccionan $K$ centros iniciales. En este ejercicio, los centros se proporcionan explícitamente en forma de matriz.
+  \item \textbf{Asignación}: Cada observación se asigna al clúster cuyo centroide esté más próximo en distancia euclídea.
+  \item \textbf{Actualización}: Para cada clúster, se recalcula su centroide como la media de todas las observaciones asignadas a él.
+  \item \textbf{Iteración}: Se repiten los pasos de asignación y actualización hasta que los centroides dejan de cambiar de manera significativa o se alcanza el número máximo de iteraciones.
+\end{enumerate}
+
+\paragraph{Puntos clave del algoritmo.}
+\begin{itemize}
+  \item K-Means siempre produce una partición en exactamente $K$ clústeres, a diferencia de los métodos jerárquicos.
+  \item La elección de los centros iniciales puede influir en el resultado final.
+  \item El algoritmo siempre converge, aunque no necesariamente al óptimo global.
+  \item Es especialmente adecuado para datos numéricos en espacios métricos como $\mathbb{R}^2$.
+\end{itemize}
+
+\subsection{Implementación en R y resultados}
+
+A continuación se presenta el código utilizado para aplicar el algoritmo K-Means al conjunto de datos. Todas las funciones empleadas pertenecen al paquete base \texttt{stats}, cargado automáticamente por R.
+
+<<ejercicio1_2_kmeans, echo=TRUE, results=verbatim>>=
+# Se crea una matriz de 2 filas y 8 columnas con los datos proporcionados
+m <- matrix(c(4,4,3,5,
+              1,2,5,5,
+              0,1,2,2,
+              4,5,2,1), 
+            2, 8)
+
+# Se transpone la matriz para que cada fila sea una observación
+(m <- t(m))
+
+# Se crea la matriz de centros iniciales (2 centros, 2 dimensiones)
+c <- matrix(c(0,1,
+              2,2), 
+            2, 2)
+
+# Se transponen los centros (cada fila será un centro)
+(c <- t(c))
+
+# Ejecución de k-means usando:
+# - m como datos
+# - c como centros iniciales (2 clusters)
+# - iter.max = 4 (el límite de iteraciones)
+(clasificacionss <- kmeans(m, c, 4))
+
+# Se añade la columna con el número de cluster asignado a cada observación
+m <- cbind(clasificacionss$cluster, m)
+
+# Se filtran las observaciones del cluster 1
+mc1 <- subset(m, m[,1] == 1)
+mc1
+
+# Se filtran las observaciones del cluster 2
+mc2 <- subset(m, m[,1] == 2)
+mc2
+
+# Se elimina la columna del cluster (dejamos solo los valores originales)
+(mc1 <- mc1[, -1])
+(mc2 <- mc2[, -1])
+@
+
+\paragraph{Explicación detallada de las funciones y parámetros utilizados.}
+
+\begin{itemize}
+
+\item \textbf{\texttt{matrix(data, nrow, ncol)}}  
+Construye una matriz a partir de un vector. En este ejercicio:
+
+\begin{itemize}
+  \item \textbf{\texttt{data}} contiene las calificaciones de 8 estudiantes.
+  \item \textbf{\texttt{nrow = 2}} indica que hay dos variables (Teoría, Laboratorio).
+  \item \textbf{\texttt{ncol = 8}} indica que hay 8 observaciones.
+\end{itemize}
+
+R rellena la matriz por columnas, por lo que posteriormente es necesario transponerla.
+
+\item \textbf{\texttt{t(x)}}  
+Devuelve la transpuesta de la matriz.  
+Se utiliza para que cada fila represente una observación, formato requerido por \texttt{kmeans()}.
+
+\item \textbf{\texttt{kmeans(x, centers, iter.max)}} — Paquete \texttt{stats}  
+
+Aplica el algoritmo K-Means de particionado sobre un conjunto de datos numéricos.
+
+\begin{itemize}
+  \item \textbf{\texttt{x = m}}  
+  Es el objeto que contiene los datos. En nuestro caso:
+  \begin{itemize}
+    \item \texttt{m} es una \textbf{matriz numérica} de dimensión \(8 \times 2\).
+    \item Cada \textbf{fila} representa una observación (un estudiante).
+    \item Cada \textbf{columna} representa una variable (\textit{Teoría} y \textit{Laboratorio}).
+  \end{itemize}
+  La función calcula distancias euclídeas entre filas de \texttt{m} para decidir a qué clúster pertenece cada observación.
+
+  \item \textbf{\texttt{centers = c}}  
+  Controla cómo se inicializan los centroides. Puede ser:
+  \begin{itemize}
+    \item Un \textbf{número entero} \(K\): R elige aleatoriamente \(K\) filas de \texttt{x} como centros iniciales.
+    \item Una \textbf{matriz numérica} con \(K\) filas: cada fila se toma como centro inicial de un clúster.
+  \end{itemize}
+  En este ejercicio usamos la segunda opción:
+  \begin{itemize}
+    \item \texttt{c} es una matriz de dimensión \(2 \times 2\).
+    \item Cada fila de \texttt{c} es un centro inicial en el plano \((\text{Teoría}, \text{Laboratorio})\).
+  \end{itemize}
+  Esto hace que el algoritmo sea \textbf{determinista}: siempre empieza en los mismos puntos y, por tanto, siempre produce la misma partición.
+
+  \item \textbf{\texttt{iter.max = 4}}  
+  Es el \textbf{número máximo de iteraciones} del algoritmo.  
+  Cada iteración realiza dos pasos:
+  \begin{enumerate}
+    \item Reasignar cada observación al centro más cercano (en distancia euclídea).
+    \item Recalcular los centroides como la media de las observaciones de cada clúster.
+  \end{enumerate}
+  El algoritmo se detiene cuando:
+  \begin{itemize}
+    \item los centros dejan de cambiar (o cambian muy poco), o
+    \item se ha alcanzado el límite de \texttt{iter.max}.
+  \end{itemize}
+  En nuestro caso, el algoritmo converge antes de llegar a 4 iteraciones, lo que indica que la partición es estable.
+\end{itemize}
+
+La función devuelve un objeto de clase \texttt{"kmeans"}, que en realidad es una \textbf{lista} con varios componentes. Los más relevantes en este ejercicio son:
+
+\begin{itemize}
+  \item \textbf{\texttt{\$cluster}}  
+  Vector de longitud igual al número de observaciones (\(n = 8\)).  
+  Para cada fila de \texttt{m}, indica el número de clúster al que ha sido asignada (1, 2, ..., K).  
+  En nuestro ejercicio, el vector:
+  \[
+    (2,\ 2,\ 1,\ 2,\ 1,\ 1,\ 2,\ 1)
+  \]
+  codifica la pertenencia de cada estudiante a uno de los dos clústeres.
+
+  \item \textbf{\texttt{\$centers}}  
+  Matriz de dimensión \(K \times p\), donde:
+  \begin{itemize}
+    \item \(K\) es el número de clústeres (aquí 2).
+    \item \(p\) es el número de variables (aquí 2: Teoría y Laboratorio).
+  \end{itemize}
+  Cada fila es el \textbf{centroide final} de un clúster, es decir, el vector de medias de las observaciones asignadas a ese clúster.  
+  En nuestro caso:
+  \[
+  C_1 = (1.25,\ 1.50), \qquad C_2 = (4.00,\ 4.75)
+  \]
+  resumen el rendimiento “medio” de los estudiantes de cada grupo.
+
+  \item \textbf{\texttt{\$size}}  
+  Vector de longitud \(K\).  
+  Cada componente indica cuántas observaciones han quedado en cada clúster.  
+  Aquí obtenemos tamaños \((4, 4)\): ambos clústeres contienen exactamente 4 estudiantes.
+
+  \item \textbf{\texttt{\$withinss}}  
+  Vector de longitud \(K\) con la \textbf{suma de cuadrados intra-clúster} de cada clúster.  
+  Para cada grupo, se calculan las distancias al cuadrado entre cada punto y su centroide, y se suman. Valores bajos indican clústeres \textbf{compactos}.  
+  En el resultado:
+  \[
+    WSS_1 = 3.75,\quad WSS_2 = 2.75
+  \]
+  lo que refleja que, en ambos grupos, los puntos están bastante próximos a sus respectivos centroides.
+
+  \item \textbf{\texttt{\$totss}}  
+  Suma de cuadrados \textbf{total} del conjunto de datos respecto al centroide global (media de todas las observaciones sin agrupar).  
+  Representa la variabilidad total inicial de los datos antes de hacer clustering.
+
+  \item \textbf{\texttt{\$tot.withinss}}  
+  Suma de las \texttt{\$withinss} de todos los clústeres:
+  \[
+    \texttt{tot.withinss} = \sum_{k=1}^{K} \texttt{withinss[k]}
+  \]
+  Es la variabilidad que todavía queda \textbf{dentro} de los clústeres tras la partición.
+
+  \item \textbf{\texttt{\$betweenss}}  
+  Suma de cuadrados \textbf{entre clústeres}. Se cumple:
+  \[
+    \texttt{totss} = \texttt{tot.withinss} + \texttt{betweenss}
+  \]
+  Cuanto mayor es \texttt{\$betweenss} (en relación con \texttt{\$totss}), mejor separadas están las medias de los clústeres.  
+  En nuestro resultado, la razón:
+  \[
+    \frac{\texttt{betweenss}}{\texttt{totss}} = 84.8\%
+  \]
+  indica que casi el 85\% de la variabilidad total se explica por la separación entre los dos clústeres, lo que confirma que la partición encontrada es muy buena.
+\end{itemize}
+
+\item \textbf{\texttt{cbind(a, b, ...)}}  
+Une objetos por columnas.  
+Permite añadir la asignación de clúster como primera columna de la matriz:
+
+\[
+m = \begin{bmatrix}
+\text{cluster} & \text{Teoría} & \text{Laboratorio}
+\end{bmatrix}
+\]
+
+\item \textbf{\texttt{subset(x, condition)}}  
+Filtra filas que cumplen una condición.  
+Aquí se usa para extraer las observaciones de cada clúster:
+
+\begin{verbatim}
+subset(m, m[,1] == 1)
+\end{verbatim}
+
+\item \textbf{\texttt{[, -1]}}  
+Indexación para eliminar la primera columna (la etiqueta de clúster), dejando solo las dos coordenadas originales.
+
+\end{itemize}
+
+\paragraph{Salida obtenida en R.}
+
+El algoritmo produce la siguiente partición: dos clústeres de tamaño 4 cada uno, con centroides:
+
+\[
+C_1 = (1.25,\ 1.50), \qquad C_2 = (4.00,\ 4.75)
+\]
+
+El resultado incluye el vector de asignación:
+
+\[
+(2,\ 2,\ 1,\ 2,\ 1,\ 1,\ 2,\ 1)
+\]
+
+y las observaciones agrupadas quedan:
+
+\[
+\text{Clúster 1: } \{(1,2), (0,1), (2,2), (2,1)\}
+\]
+\[
+\text{Clúster 2: } \{(4,4), (3,5), (5,5), (4,5)\}
+\]
+
+\subsection{Análisis e interpretación de los resultados}
+
+Tras ejecutar el algoritmo K-Means con los centros iniciales especificados, se obtiene una partición final formada por \textbf{2 clústeres de igual tamaño} (4 observaciones cada uno). El algoritmo converge antes de alcanzar el límite de \texttt{iter.max = 4}, señal de que la separación entre grupos está claramente definida.
+
+\paragraph{Centroides finales.}
+
+Los centros obtenidos al finalizar el proceso son:
+
+\[
+C_1 = (1.25,\ 1.50), \qquad
+C_2 = (4.00,\ 4.75)
+\]
+
+Estos centroides resumen el “punto medio” de cada agrupación. Puede observarse que:
+
+\begin{itemize}
+    \item \(C_1\) se sitúa en la región de valores bajos de ambas variables.
+    \item \(C_2\) aparece claramente desplazado hacia valores altos.
+\end{itemize}
+
+Por tanto, el algoritmo ha identificado \textbf{dos grupos muy separados} en el espacio bidimensional: uno correspondiente a observaciones ``pequeñas'' y otro a observaciones ``grandes''.
+
+\paragraph{Asignación de observaciones a los clústeres.}
+
+El vector de pertenencia devuelto por \texttt{kmeans()} es:
+
+\[
+(2,\ 2,\ 1,\ 2,\ 1,\ 1,\ 2,\ 1)
+\]
+
+lo que produce la siguiente partición:
+
+\[
+\textbf{Clúster 1: } \{(1,2), (0,1), (2,2), (2,1)\}
+\]
+\[
+\textbf{Clúster 2: } \{(4,4), (3,5), (5,5), (4,5)\}
+\]
+
+La separación es intuitiva: los puntos con coordenadas pequeñas quedan agrupados juntos, mientras que los de coordenadas altas forman un segundo grupo muy compacto.
+
+\paragraph{Variabilidad interna y entre clústeres.}
+
+El resultado muestra:
+
+\begin{itemize}
+    \item \textbf{Within-cluster sum of squares (WSS):}  
+    \[
+    WSS_1 = 3.75,\quad WSS_2 = 2.75
+    \]
+    Ambos valores son bajos, lo que significa que los puntos están cerca de sus centroides.
+    
+    \item \textbf{Between-cluster sum of squares (BSS):}  
+    El algoritmo informa de que:
+    \[
+    \text{BSS / Total SS} = 84.8\%
+    \]
+    Es decir, casi el 85\% de la variabilidad total del conjunto se explica por la separación entre los dos clústeres.
+\end{itemize}
+
+Un valor tan alto de BSS indica que los clústeres encontrados están \textbf{bien separados} y que la estructura agrupada es muy clara.
+
+\paragraph{Formas de los clústeres obtenidos.}
+
+Visualizando los puntos:
+
+\[
+\text{Clúster 1: cercano al origen}
+\qquad
+\text{Clúster 2: puntos altos y concentrados}
+\]
+
+En ambos casos:
+
+\begin{itemize}
+    \item Los puntos se agrupan alrededor de centros muy representativos.
+    \item La dispersión es pequeña, lo que confirma la \textbf{coherencia interna} de cada clúster.
+\end{itemize}
+
+\paragraph{Conclusión.}
+
+El algoritmo K-Means ha identificado correctamente una estructura de dos clústeres claramente diferenciados:
+
+\begin{itemize}
+    \item Un clúster formado por observaciones con valores bajos en ambas dimensiones.
+    \item Un segundo clúster formado por observaciones con valores notablemente más altos.
+\end{itemize}
+
+La varianza explicada del 84.8\% confirma que la partición es de alta calidad y que las observaciones se agrupan de manera natural en dos grupos bien definidos.
+
+\newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Ejercicio 1.3: Clasificación Supervisada (Árboles de Decisión)}
+\section{Ejercicio 1.3: Clasificación Supervisada (Árboles de Decisión)}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 En este ejercicio guiado se realiza un análisis de clasificación supervisada utilizando árboles de decisión. El objetivo es construir un modelo capaz de predecir la calificación global (\textit{C.G}) de un estudiante (Aprobado/Suspenso) basándose en sus notas parciales.
 
-\subsubsection{1. Descripción del conjunto de datos}
+\subsection{1. Descripción del conjunto de datos}
 El conjunto de datos de entrenamiento consta de 9 observaciones. Las variables son cualitativas ordinales:
 \begin{itemize}
     \item \textbf{Variables Predictoras:} \textit{Teoria}, \textit{Laboratorio}, \textit{Practicas} (Valores: A, B, C, D).
     \item \textbf{Variable Clase:} \textit{C.G} (Valores: Ap, Ss).
 \end{itemize}
 
-\subsubsection{2. Fundamento Teórico y Funciones de R}
+\subsection{2. Fundamento Teórico y Funciones de R}
 Para la construcción del árbol se utiliza la librería \texttt{rpart}, que implementa una variante del algoritmo CART (\textit{Classification and Regression Trees}).
 \begin{itemize}
     \item \textbf{\texttt{rpart(formula, data, method, control)}}: Función principal.
@@ -47,7 +442,7 @@ Para la construcción del árbol se utiliza la librería \texttt{rpart}, que imp
     \end{itemize}
 \end{itemize}
 
-\subsubsection{3. Implementación en R y Resultados}
+\subsection{3. Implementación en R y Resultados}
 
 A continuación se muestra el código para generar el modelo y la salida textual del árbol generado.
 
@@ -77,7 +472,7 @@ print("Estructura del Árbol generado (rpart):")
 print(arbol)
 @
 
-\subsubsection{4. Análisis de los Resultados}
+\subsection{4. Análisis de los Resultados}
 
 La salida textual del objeto \texttt{rpart} describe la estructura jerárquica del árbol de decisión generado. A continuación se interpreta cada nodo del resultado obtenido:
 
@@ -123,7 +518,7 @@ La salida textual del objeto \texttt{rpart} describe la estructura jerárquica d
 \paragraph{Conclusión del modelo.}
 El árbol generado ha logrado clasificar correctamente el 100\% de los ejemplos de entrenamiento (error 0 en todos los nodos terminales). Curiosamente, la variable \textbf{Teoría} no ha sido necesaria para la clasificación; el modelo determina que con saber las notas de Laboratorio y Prácticas es suficiente para determinar la Calificación Global en este conjunto de datos.
 
-\subsubsection*{Prompt de IA Utilizado}
+\subsection*{Prompt de IA Utilizado}
 \begin{quote}
 I need to perform a supervised classification analysis in R for Exercise 1.3. The dataset consists of 9 student records with qualitative ordinal variables: 'Teoria', 'Laboratorio', 'Practicas' (grades A, B, C, D) and a target class 'C.G' (Global Grade: Ap, Ss). Please write an R script using the \texttt{rpart} library to build a decision tree. The script must define the dataframe manually to ensure reproducibility. It is crucial to set the \texttt{minsplit} parameter to 1 in \texttt{rpart.control} to force the tree to split even with small sample sizes, allowing for a complete classification of the training set. Finally, print the tree object to display the text-based structure of the nodes and splits.
 \end{quote}
@@ -397,7 +792,7 @@ Requisitos de estilo:
 \newpage
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Ejercicio 2.3: Clasificación Supervisada Manual (Árboles de Decisión)}
+\section{Ejercicio 2.3: Clasificación Supervisada Manual (Árboles de Decisión)}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 En este ejercicio autónomo se construye un árbol de decisión de forma manual para clasificar tipos de vehículos. Se implementa la lógica del algoritmo de particionamiento recursivo (siguiendo la filosofía de algoritmos como Hunt o ID3/CART) pero programando explícitamente el cálculo de la impureza y la ganancia de información.

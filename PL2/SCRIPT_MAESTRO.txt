@@ -1,4 +1,118 @@
 # ==============================================================================
+# EJERCICIO 1.1: CLASIFICACIÓN NO SUPERVISADA (K-MEANS)
+# ==============================================================================
+
+cat("\n\n********************************************************************\n")
+cat(" EJERCICIO 1.1: CLUSTERING K-MEANS (CALIFICACIONES TEORÍA/LABORATORIO)\n")
+cat("********************************************************************\n")
+
+# ------------------------------------------------------------------------------
+# 1. DEFINICIÓN DE LOS DATOS
+# ------------------------------------------------------------------------------
+
+# Se crea una matriz de 2 filas y 8 columnas con los datos proporcionados.
+# Cada columna representa un estudiante:
+#   - Fila 1: Nota de Teoría
+#   - Fila 2: Nota de Laboratorio
+m <- matrix(c(4, 4, 3, 5,
+              1, 2, 5, 5,
+              0, 1, 2, 2,
+              4, 5, 2, 1),
+            nrow = 2, ncol = 8)
+
+cat(">> Matriz original (variables en filas, observaciones en columnas):\n")
+print(m)
+
+# Se transpone la matriz para que cada fila sea una observación
+# y cada columna una variable (formato estándar para kmeans()).
+m <- t(m)
+cat("\n>> Matriz de datos tras la transposición (8 observaciones x 2 variables):\n")
+print(m)
+
+# ------------------------------------------------------------------------------
+# 2. DEFINICIÓN DE LOS CENTROS INICIALES
+# ------------------------------------------------------------------------------
+
+# Se crea la matriz de centros iniciales (2 centros, 2 dimensiones).
+# En este caso indicamos explícitamente dos puntos en el plano (Teoría, Laboratorio):
+#   Centro 1: (0, 1)
+#   Centro 2: (2, 2)
+c <- matrix(c(0, 1,
+              2, 2),
+            nrow = 2, ncol = 2)
+
+cat("\n>> Matriz de centros iniciales (antes de transponer):\n")
+print(c)
+
+# Se transpone la matriz de centros para que cada fila sea un centro.
+c <- t(c)
+cat("\n>> Centros iniciales usados por kmeans() (cada fila = un centro):\n")
+print(c)
+
+# ------------------------------------------------------------------------------
+# 3. EJECUCIÓN DEL ALGORITMO K-MEANS
+# ------------------------------------------------------------------------------
+
+cat("\n>> Ejecutando kmeans() con 2 clústeres e iter.max = 4...\n")
+
+# Ejecución de k-means usando:
+#   - x = m         : matriz de datos (8 observaciones x 2 variables)
+#   - centers = c   : matriz con los 2 centros iniciales
+#   - iter.max = 4  : límite máximo de iteraciones del algoritmo
+clasificacionss <- kmeans(m, centers = c, iter.max = 4)
+
+cat("\n>> Resumen del objeto devuelto por kmeans():\n")
+print(clasificacionss)
+
+cat("\n>> Vector de pertenencia a clústeres (clasificacionss$cluster):\n")
+print(clasificacionss$cluster)
+
+cat("\n>> Centros finales de los clústeres (clasificacionss$centers):\n")
+print(clasificacionss$centers)
+
+# ------------------------------------------------------------------------------
+# 4. AÑADIR LA ASIGNACIÓN DE CLÚSTER A LOS DATOS
+# ------------------------------------------------------------------------------
+
+# Se añade la columna con el número de clúster asignado a cada observación.
+# El resultado es una matriz donde:
+#   - Columna 1: número de clúster (1 o 2)
+#   - Columnas 2 y 3: notas de Teoría y Laboratorio.
+m <- cbind(clasificacionss$cluster, m)
+
+cat("\n>> Datos con la columna de clúster añadida:\n")
+colnames(m) <- c("Cluster", "Teoria", "Laboratorio")
+print(m)
+
+# ------------------------------------------------------------------------------
+# 5. SEPARACIÓN DE LOS DATOS POR CLÚSTER
+# ------------------------------------------------------------------------------
+
+# Se filtran las observaciones del clúster 1
+mc1 <- subset(m, m[, 1] == 1)
+cat("\n>> Observaciones pertenecientes al clúster 1 (con columna de clúster):\n")
+print(mc1)
+
+# Se filtran las observaciones del clúster 2
+mc2 <- subset(m, m[, 1] == 2)
+cat("\n>> Observaciones pertenecientes al clúster 2 (con columna de clúster):\n")
+print(mc2)
+
+# ------------------------------------------------------------------------------
+# 6. ELIMINAR LA COLUMNA DE CLÚSTER (DEJAR SOLO LAS COORDENADAS ORIGINALES)
+# ------------------------------------------------------------------------------
+
+# Se eliminan las columnas de clúster (dejamos solo las coordenadas originales).
+mc1 <- mc1[, -1]
+mc2 <- mc2[, -1]
+
+cat("\n>> Clúster 1 (solo coordenadas Teoría/Laboratorio):\n")
+print(mc1)
+
+cat("\n>> Clúster 2 (solo coordenadas Teoría/Laboratorio):\n")
+print(mc2)
+
+# ==============================================================================
 # EJERCICIO 1.3: CLASIFICACIÓN SUPERVISADA (Árboles de Decisión) - Guiado
 # ==============================================================================
 cat("\n\n********************************************************************\n")
