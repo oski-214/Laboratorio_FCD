@@ -743,6 +743,325 @@ El árbol generado ha logrado clasificar correctamente el 100\% de los ejemplos 
 I need to perform a supervised classification analysis in R for Exercise 1.3. The dataset consists of 9 student records with qualitative ordinal variables: 'Teoria', 'Laboratorio', 'Practicas' (grades A, B, C, D) and a target class 'C.G' (Global Grade: Ap, Ss). Please write an R script using the \texttt{rpart} library to build a decision tree. The script must define the dataframe manually to ensure reproducibility. It is crucial to set the \texttt{minsplit} parameter to 1 in \texttt{rpart.control} to force the tree to split even with small sample sizes, allowing for a complete classification of the training set. Finally, print the tree object to display the text-based structure of the nodes and splits.
 \end{quote}
 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{ Ejercicio 2.1 : Implementación del Algoritmo K-means}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{Fundamento Teórico}
+Entre las técnicas existentes de clasificación no supervisada, el algoritmo \textbf{K-means} es uno de los métodos más utilizados dada su simplicidad y su capacidad para particionar datos numéricos en K grupos. 
+Este algoritmo sigue un procedimiento iterativo compuesto por dos grandes fases (A y B) :
+\begin{itemize}
+    \item \textbf{Paso A (primera iteración):}
+    \begin{itemize}
+        \item Selección de K y elección de los centroides iniciales.
+        \item Cálculo de la distancia euclidiana entre cada punto y cada centroide.
+        \item Asignación de cada punto al centroide más cercano.
+    \end{itemize}
+    \item \textbf{Paso B (iteraciones siguientes):}
+    \begin{itemize}
+        \item Recalcular los centroides como la media de los puntos asignados.
+        \item Recalcular distancias.
+        \item Reasignar puntos.
+    \end{itemize}
+\end{itemize}
+El proceso continúa hasta que la asignación deja de cambiar entre iteraciones consecutivas, criterio considerado como señal de convergencia del algoritmo (criterio de parada).
+El algoritmo utiliza como medida de similitud la distancia euclidiana, definida en las diapositivas como:
+$$d(p,c)=\sqrt{(p_1-c_1)^2+(p_2-c_2)^2}$$
+La lógica del algoritmo consiste, por tanto, en minimizar la distancia de cada punto respecto a su centroide y actualizar estos centros hasta alcanzar estabilidad.
+
+\subsection{Definición del Conjunto de Datos}
+El conjunto de datos utilizado está compuesto por 15 observaciones, cada una formada por un par numérico \texttt{\{Velocidad, Temperatura\}}. Estos valores representan medidas normalizadas de rendimiento de un microprocesador.
+Este tipo de datos bidimensionales resulta adecuado para ser analizado mediante K-means, puesto que ambas características (velocidad de respuesta y temperatura) permiten separar visualmente grupos diferentes de comportamiento térmico y rendimiento.
+Se considera, según el enunciado, que lo más probable es que el conjunto de datos se organice en tres clusters claramente diferenciados.
+
+Definición y visualización de la matriz de datos:
+<<data_definition, echo=TRUE>>=
+# Matriz con los 15 pares {Velocidad, Temperatura}
+# Se cargan por filas (byrow=TRUE)
+datos <- matrix(c(
+  3.5,4.5,
+  0.75,3.25,
+  0,3,
+  1.75,0.75,
+  3,3.75,
+  3.75,4.5,
+  1.25,0.75,
+  0.25,3,
+  3.5,4.25,
+  1.5,0.5,
+  1,1,
+  3,4,
+  0.5,3,
+  2,0.25,
+  0,2.5),
+  ncol=2, byrow=TRUE)
+
+colnames(datos) <- c("Velocidad","Temp")
+
+K <- 3        # Número de clusters
+n <- nrow(datos)
+
+cat("Matriz de datos (Velocidad, Temp):\n")
+print(datos)
+cat("\nNúmero de clusters (K):", K, "\n")
+@
+
+\subsection{Funciones implementadas.}
+A continuación, se describen las funciones que se utilizan para realizar este ejercicio.
+
+\subsubsection{Función \texttt{suma}}
+La primera función desarrollada es \texttt{suma()}, cuya finalidad es calcular la suma de los elementos de un vector numérico.
+Para ello, la función recorre secuencialmente cada elemento del vector acumulándolo en una variable inicializada a cero. Este proceso reproduce exactamente la definición elemental de suma como acumulación iterativa. 
+Funciona mientras el vector tenga al menos un elemento.
+<<func_suma, echo=TRUE>>=
+suma <- function(v){
+  total <- 0
+  for(i in 1:length(v)){
+    total <- total + v[i]
+  }
+  return(total)
+}
+@
+
+\subsubsection{Función \texttt{which\_min}}
+Otra operación fundamental para el algoritmo K-means es la identificación del índice correspondiente al valor mínimo dentro de un vector. Recibe un vector \texttt{v} y devuelve el índice del valor mínimo.
+Compara sucesivamente cada elemento del vector con un valor mínimo provisional. En caso de encontrar un valor inferior, la función actualiza tanto el mínimo actual como su posición. Esta función es esencial en el paso de asignación de puntos, ya que permite seleccionar el centroide más cercano a cada observación 
+según sus distancias calculadas.
+<<func_which_min, echo=TRUE>>=
+which_min <- function(v){
+  indice <- 1
+  valor  <- v[1]
+
+  for(i in 2:length(v)){
+    if(v[i] < valor){
+      valor <- v[i]
+      indice <- i
+    }
+  }
+  return(indice)
+}
+@
+
+\subsubsection{Función \texttt{media}}
+El algoritmo K-means recalcula centroides como la media de los puntos asignados a cada cluster. Por ello, también se implementa manualmente la función \texttt{media()}, 
+basada en la función anterior \texttt{suma()}. Esta función divide la suma total de los elementos entre el número de componentes del vector. Esta función es importante en el paso B del algoritmo, 
+donde se obtienen los nuevos centroides.
+<<func_media, echo=TRUE>>=
+media <- function(v){
+  return(suma(v) / length(v))
+}
+@
+
+\subsubsection{Función \texttt{dist\_euclidea}}
+La distancia euclidiana es el criterio utilizado por K-means para medir la similitud entre un punto y un centroide. La función \texttt{dist\_euclidea()} implementa exactamente la definición matemática de esta distancia: la raíz cuadrada de la suma de los cuadrados de las diferencias entre coordenadas correspondientes. Para ello, la función calcula el vector de diferencias entre \texttt{p} y \texttt{c}, 
+lo eleva al cuadrado y finalmente aplica raíz cuadrada a la suma de los elementos.
+<<func_dist_euclidea, echo=TRUE>>=
+dist_euclidea <- function(p, c){
+  v <- (p - c)^2
+  return(sqrt(suma(v)))
+}
+@
+
+\subsubsection{Función \texttt{inicializar\_centroides}}
+Se ha creado una función flexible para inicializar centroides. Esta función permite dos modos de uso:
+\begin{itemize}
+    \item Inicialización manual, en la que el usuario proporciona directamente los centroides iniciales.
+    \item Inicialización aleatoria dentro del rango de los datos, donde cada centroide se genera mediante números aleatorios uniformes comprendidos entre el mínimo y el máximo de cada variable. Esta modalidad está diseñada para simular cómo se inicializa K-means en la práctica, donde no siempre se parte de centroides conocidos.
+\end{itemize}
+Con esta flexibilidad, el algoritmo se vuelve más general y capaz de adaptarse a distintos escenarios sin modificar su estructura interna.
+En este ejercicio se utiliza la \textbf{inicialización manual} tomando las observaciones 1, 4 y 8 como centroides iniciales.
+<<func_inicializar_centroides, echo=TRUE>>=
+inicializar_centroides <- function(datos, K, manual = NULL){
+
+  # --- OPCIÓN 1: pasas los centroides manualmente ---
+  if(!is.null(manual)){
+    return(manual)
+  }
+
+  # --- OPCIÓN 2: centroides aleatorios dentro del rango de los datos ---
+
+  # Para cada columna (velocidad y temperatura), obtenemos rango
+  mins <- apply(datos, 2, min)
+  maxs <- apply(datos, 2, max)
+
+  centroides <- matrix(0, nrow=K, ncol=ncol(datos))
+
+  for(k in 1:K){
+    for(j in 1:ncol(datos)){
+      # número aleatorio uniforme dentro del rango de la columna
+      centroides[k, j] <- runif(1, mins[j], maxs[j])
+    }
+  }
+
+  return(centroides)
+}
+
+### → O bien pones tus centroides
+centroides <- inicializar_centroides(datos, K, manual = datos[c(1,4,8), ])
+cat("Centroides iniciales (observaciones 1, 4, 8):\n")
+print(centroides)
+
+### → O bien los generas aleatoriamente (más genérico)
+#centroides <- inicializar_centroides(datos, K)
+@
+
+\subsubsection{Función \texttt{asignar\_clusters}}
+Una de las piezas centrales del algoritmo es la función \texttt{asignar\_clusters()}, que implementa la fase de asignación de puntos. 
+Para cada observación del conjunto de datos, la función calcula su distancia a cada uno de los centroides utilizando \texttt{dist\_euclidea()}. Una vez obtenidas las distancias, se determina cuál de ellas es la mínima mediante 
+\texttt{which\_min()}. El resultado final es un vector que indica, para cada punto, el índice del cluster al que pertenece.
+<<func_asignar_clusters, echo=TRUE>>=
+asignar_clusters <- function(datos, centroides){
+  n <- nrow(datos)
+  K <- nrow(centroides)
+  asignacion <- rep(0, n)
+
+  for(i in 1:n){
+    distancias <- rep(0, K)
+
+    # Calculamos distancia desde el punto i a cada centroide
+    for(k in 1:K){
+      distancias[k] <- dist_euclidea(datos[i,], centroides[k,])
+    }
+
+    # Elegimos el centroide más cercano
+    asignacion[i] <- which_min(distancias)
+  }
+
+  return(asignacion)
+}
+@
+
+\subsubsection{Función \texttt{recalcular\_centroides}}
+La segunda fase del algoritmo consiste en recalcular los centroides en función de los puntos asignados en la fase anterior. Para ello se implementa la función \texttt{recalcular\_centroides()}, que agrupa todas las observaciones pertenecientes a cada cluster y 
+calcula de manera independiente la media de Velocidad y la media de Temperatura usando la función \texttt{media()}. De esta forma se obtiene una matriz de centroides actualizada que se utilizará en la siguiente iteración del algoritmo. Esta implementación manual 
+permite visualizar claramente el mecanismo mediante el cual los centroides se desplazan hacia el centro geométrico de cada grupo de puntos. Devuelve una matriz con los nuevos centroides.
+<<func_recalcular_centroides, echo=TRUE>>=
+recalcular_centroides <- function(datos, asignacion, K){
+  nuevos_centroides <- matrix(0, nrow=K, ncol=2)
+
+  for(k in 1:K){
+    # Extraemos todos los puntos asignados al cluster k
+    puntos <- datos[asignacion == k, , drop=FALSE]
+
+    # Calculamos manualmente el centroide:
+    # media de la columna 1 (Velocidad)
+    # media de la columna 2 (Temp)
+    if(nrow(puntos) > 0){ # Evitar dividir por cero si un cluster queda vacío
+        nuevos_centroides[k,1] <- media(puntos[,1])
+        nuevos_centroides[k,2] <- media(puntos[,2])
+    } else {
+        # Si un cluster queda vacío, se mantiene el centroide anterior o se redefine
+        # Aquí se dejará en cero por simplicidad en esta implementación manual.
+        nuevos_centroides[k,1] <- 0 
+        nuevos_centroides[k,2] <- 0
+    }
+  }
+
+  return(nuevos_centroides)
+}
+@
+
+\subsubsection{Bucle principal del algoritmo K-means}
+Finalmente, todas las funciones anteriores se integran dentro de un bucle \texttt{repeat} que representa la ejecución completa del algoritmo. 
+En cada iteración se asignan los puntos a los centroides y posteriormente se recalculan estos centroides. El proceso continúa hasta que la asignación deja de cambiar entre una iteración y la siguiente, 
+lo que indica que se ha alcanzado la convergencia. Esta condición de parada reproduce fielmente el comportamiento teórico del algoritmo: una vez que los puntos permanecen estables, el algoritmo ha encontrado una solución.
+
+\medskip
+\noindent El resultado de la ejecución iterativa es el siguiente:
+<<k_means_iterations, echo=TRUE>>=
+### =============================
+### ITERACIONES DEL ALGORITMO K-MEANS
+### =============================
+
+iter <- 1
+repeat{
+  cat("\n--- Iteración", iter, "---\n")
+
+  # Paso A.2 / B.2: asignación de clusters
+  asignacion_nueva <- asignar_clusters(datos, centroides)
+  print(asignacion_nueva)
+
+  # Criterio de parada: si no cambia la clasificación, ha convergido
+  if(iter > 1 && all(asignacion_nueva == asignacion_ant)){
+    cat("\n>>> La clasificación ha convergido.\n")
+    break
+  }
+
+  # Paso B.1: recalcular centroides
+  centroides <- recalcular_centroides(datos, asignacion_nueva, K)
+  cat("Nuevos Centroides:\n")
+  print(centroides)
+
+  asignacion_ant <- asignacion_nueva
+  iter <- iter + 1
+}
+@
+
+\subsection{Desarrollo del Algoritmo y Análisis de Resultados}
+Tras inicializar los centroides con las observaciones 1, 4 y 8, el algoritmo comienza a iterar, alternando fases de asignación y recálculo.
+En cada iteración se muestran los clusters asignados y los centroides recalculados.
+Al ejecutarse el código, la clasificación final estabilizada es:
+<<final_results, echo=TRUE>>=
+### =============================
+### RESULTADOS FINALES
+### =============================
+
+cat("\n\n=========================\n")
+cat("   CLUSTER FINAL\n")
+cat("=========================\n")
+print(asignacion_nueva)
+
+cat("\nCentroides finales:\n")
+print(centroides)
+@
+
+Esto significa:
+\begin{itemize}
+    \item Cluster 1: puntos 1, 5, 6, 9, 12
+    \item Cluster 2: puntos 4, 7, 10, 11, 14
+    \item Cluster 3: puntos 2, 3, 8, 13, 15
+\end{itemize}
+
+Los centroides obtenidos al finalizar el proceso fueron:
+\texttt{
+\Sexpr{format(centroides[1,], digits=3)}\\
+\Sexpr{format(centroides[2,], digits=3)}\\
+\Sexpr{format(centroides[3,], digits=3)}
+}
+
+\subsubsection{Interpretación:}
+\begin{itemize}
+    \item Cluster 1 agrupa microprocesadores de alto rendimiento y alta temperatura (velocidad $\sim3.3-3.7$ y temperatura $\sim4-4.5$).
+    \item Cluster 2 reúne valores de baja temperatura y velocidad media-baja, característicos de microprocesadores que operan en frío.
+    \item Cluster 3 concentra valores de baja velocidad y temperaturas medias, representando un comportamiento intermedio.
+\end{itemize}
+Los centroides finales muestran tres regiones bien diferenciadas en el plano Velocidad-Temperatura, coherentes con la interpretación visual inicial del ejercicio.
+
+
+
+\subsubsection*{Prompt de IA Utilizado}
+\begin{quote}
+I need you to generate a manual code for the K-means algorithm in R, without using kmeans() or automatic functions, 
+so I can understand each step of the algorithm just like we did in class.
+To do it like we did in class, I was thinking of:
+
+Basic functions such as: a sum function, a whichMin function to get the index of the minimum, a mean function, 
+and a dist\_euclidea function explicitly calculated as $\sqrt{((x_1-x_2)^2+(y_1-y_2)^2)}$, without using external functions.
+
+An initialize\_centroids function, which allows both manually entering centroids and generating them randomly within the data range.
+
+An assign\_clusters function, which uses two for loops: one to iterate through each point and another to calculate the distance 
+to each centroid, choosing the closest centroid.
+
+A recalculate\_centroids function, which reconstructs each centroid by manually calculating the mean of the columns of assigned points.
+If you need more functions, include them, but follow this idea.
+\end{quote}
+
+
+
+\newpage
+
 \section{Ejercicio 2.2: Clustering jerárquico MIN, MAX, AVG y efecto del jitter}
 
 \subsection{Descripción del conjunto de datos}
