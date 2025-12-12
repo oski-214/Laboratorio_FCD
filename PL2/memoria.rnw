@@ -103,14 +103,6 @@ El algoritmo opera iterativamente siguiendo una serie de pasos:
   \item \textbf{Iteración}: Se repiten los pasos de asignación y actualización hasta que los centroides dejan de cambiar de manera significativa o se alcanza el número máximo de iteraciones.
 \end{enumerate}
 
-\paragraph{Puntos clave del algoritmo.}
-\begin{itemize}
-  \item K-Means siempre produce una partición en exactamente $K$ clústeres, a diferencia de los métodos jerárquicos.
-  \item La elección de los centros iniciales puede influir en el resultado final.
-  \item El algoritmo siempre converge, aunque no necesariamente al óptimo global.
-  \item Es especialmente adecuado para datos numéricos en espacios métricos como $\mathbb{R}^2$.
-\end{itemize}
-
 \subsection{Implementación en R y resultados}
 
 A continuación se presenta el código utilizado para aplicar el algoritmo K-Means al conjunto de datos. Todas las funciones empleadas pertenecen al paquete base \texttt{stats}, cargado automáticamente por R.
@@ -211,10 +203,10 @@ Aplica el algoritmo K-Means de particionado sobre un conjunto de datos numérico
   \end{enumerate}
   El algoritmo se detiene cuando:
   \begin{itemize}
-    \item los centros dejan de cambiar (o cambian muy poco), o
+    \item los centros dejan de cambiar, o
     \item se ha alcanzado el límite de \texttt{iter.max}.
   \end{itemize}
-  En nuestro caso, el algoritmo converge antes de llegar a 4 iteraciones, lo que indica que la partición es estable.
+  En nuestro caso, el algoritmo converge antes de llegar a 4 iteraciones.
 \end{itemize}
 
 La función devuelve un objeto de clase \texttt{"kmeans"}, que en realidad es una \textbf{lista} con varios componentes. Los más relevantes en este ejercicio son:
@@ -277,7 +269,7 @@ La función devuelve un objeto de clase \texttt{"kmeans"}, que en realidad es un
   \[
     \frac{\texttt{betweenss}}{\texttt{totss}} = 84.8\%
   \]
-  indica que casi el 85\% de la variabilidad total se explica por la separación entre los dos clústeres, lo que confirma que la partición encontrada es muy buena.
+  indica que casi el 85\% de la variabilidad total se explica por la separación entre los dos clústeres.
 \end{itemize}
 
 \item \textbf{\texttt{cbind(a, b, ...)}}  
@@ -388,23 +380,6 @@ El resultado muestra:
 
 Un valor tan alto de BSS indica que los clústeres encontrados están \textbf{bien separados} y que la estructura agrupada es muy clara.
 
-\paragraph{Formas de los clústeres obtenidos.}
-
-Visualizando los puntos:
-
-\[
-\text{Clúster 1: cercano al origen}
-\qquad
-\text{Clúster 2: puntos altos y concentrados}
-\]
-
-En ambos casos:
-
-\begin{itemize}
-    \item Los puntos se agrupan alrededor de centros muy representativos.
-    \item La dispersión es pequeña, lo que confirma la \textbf{coherencia interna} de cada clúster.
-\end{itemize}
-
 \paragraph{Conclusión.}
 
 El algoritmo K-Means ha identificado correctamente una estructura de dos clústeres claramente diferenciados:
@@ -431,7 +406,7 @@ El conjunto de datos del Ejercicio 1.2 está formado por \textbf{6 observaciones
   \item \textbf{Laboratorio}: rendimiento en las actividades de laboratorio.
 \end{itemize}
 
-Al igual que en el Ejercicio 1.1, ambas variables se interpretan como coordenadas de un punto en el plano bidimensional \((\text{Teoría}, \text{Laboratorio})\). En este caso, las calificaciones no son enteras, sino valores reales, lo que permite representar con mayor precisión diferencias intermedias en el rendimiento de los estudiantes. Cada estudiante queda, por tanto, representado como un par ordenado en \(\mathbb{R}^2\), sobre el que se aplicará posteriormente un método de \textbf{clusterización jerárquica aglomerativa}. 
+Al igual que en el Ejercicio 1.1, ambas variables se interpretan como coordenadas de un punto en el plano bidimensional \((\text{Teoría}, \text{Laboratorio})\). En este caso, las calificaciones no son enteras. Cada estudiante queda, por tanto, representado como un par ordenado en \(\mathbb{R}^2\), sobre el que se aplicará posteriormente un método de \textbf{clusterización jerárquica aglomerativa}. 
 
 Las 6 observaciones utilizadas en el ejercicio son las siguientes:
 
@@ -607,7 +582,7 @@ Con el criterio MIN, la proximidad entre clústeres se mide por la \textbf{dista
   \item Finalmente, en el \textbf{STEP 5}, se añade la observación restante \((0.89, 2.94)\), completando el clúster único de las 6 observaciones.
 \end{itemize}
 
-El resultado es un gran clúster que se va extendiendo mediante la unión de puntos o grupos que están relativamente cerca de \emph{alguno} de los elementos ya agrupados, incluso si el resto del clúster está lejos. Esto es característico del single link: tiende a construir clústeres alargados, conectando puntos a través de “cadenas” de distancias pequeñas.
+El resultado es un gran clúster que se va extendiendo mediante la unión de puntos o grupos que están relativamente cerca de \emph{alguno} de los elementos ya agrupados, incluso si el resto del clúster está lejos.
 
 \paragraph{Crecimiento de los clústeres con enlace MAX (complete link).}
 
@@ -633,7 +608,7 @@ Ambos criterios de enlace convergen a una estructura muy similar: un grupo de es
 
 \paragraph{Conclusión.}
 
-El análisis jerárquico aglomerativo confirma que las 6 observaciones se organizan de manera natural en dos grupos principales, coherentes con el rendimiento global de los estudiantes. El uso de distancia euclídea en \(\mathbb{R}^2\) permite que el algoritmo aproveche directamente la estructura geométrica de los datos, mientras que la comparación entre los criterios de enlace MIN y MAX ilustra cómo distintas definiciones de “distancia entre clústeres” pueden modificar el proceso de fusión sin alterar la interpretación cualitativa principal del conjunto de datos.
+El análisis jerárquico aglomerativo confirma que las 6 observaciones se organizan de manera natural en dos grupos principales, coherentes con el rendimiento global de los estudiantes. El uso de distancia euclídea en \(\mathbb{R}^2\) permite que el algoritmo aproveche directamente la estructura geométrica de los datos, mientras que la comparación entre los criterios de enlace MIN y MAX ilustra cómo distintas definiciones de “distancia entre clústeres” pueden modificar el proceso de fusión sin alterar la interpretación del conjunto de datos.
 
 
 \newpage
