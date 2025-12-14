@@ -1054,6 +1054,37 @@ Para realizar el análisis de clustering jerárquico se emplean funciones base d
   \item \textbf{\texttt{plot()}}: Representa los dendrogramas de los distintos métodos de enlace.
 \end{itemize}
 
+\subsection{Fundamento teórico}
+La clusterización jerárquica aglomertiva es un método de clusterización no supervisado donde se pueden emplear tres técnicas diferentes (Single Link; Complete Link y Average Link).
+
+Cada una de ellas tienen un procedimiento diferente y se pueden comparar al final del todo con lo que se conoce como coeficiente cophenetico, que determina cual de las tres técnicas ha resultado mejor a la hora de formar los clusters.
+
+El procedimiento de clusterización siempre comienza con la obtención de las distancias euclideas entre cada uno de los datos, una vez se tienen se eligen diferentes valores para las distancias entre los clusters dependiendo de la técnica empleado, o lo que se conoce como proximidad.
+
+Para MIN o Single Link: La proximidad se entiende como la distancia que hay entre los dos puntos más cercanos de los dos clusters.
+
+Para MAX o Complete Link: La proximidad se entiende como la distancia que hay entre los dos puntos más lejanos de los dos clusters.
+
+Para AVG o Average Link: La proximidad se entiende como la media de distancias entre todos las parejas que se pueden formar con los puntos de los dos clusters.
+
+Las fórmulas a emplear para el cálculo del coeficiente cophenetico son las siguientes:
+
+\[
+\mathrm{Cov}(X,Y) = \frac{1}{N}\sum_{k=1}^{N}\bigl(x_k - \bar{x}\bigr)\bigl(y_k - \bar{y}\bigr)
+\]
+
+\[
+S_X = \sqrt{\frac{1}{N}\sum_{k=1}^{N}\bigl(x_k - \bar{x}\bigr)^2}
+\qquad
+S_Y = \sqrt{\frac{1}{N}\sum_{k=1}^{N}\bigl(y_k - \bar{y}\bigr)^2}
+\]
+
+\[
+\rho = \frac{S_{XY}}{S_X\,S_Y}
+\]
+
+
+
 
 \subsection{Implementación del análisis en R}
 
@@ -1103,7 +1134,7 @@ cl_min_original <- agglomerative_clustering(
   data = datos,
   proximity = "single",
   distance_method = "euclidean",
-  learn = TRUE,
+  learn = FALSE,
   waiting = FALSE
 )
 
@@ -1111,7 +1142,7 @@ cl_min_jitter <- agglomerative_clustering(
   data = datos_jitter,
   proximity = "single",
   distance_method = "euclidean",
-  learn = TRUE,
+  learn = FALSE,
   waiting = FALSE
 )
 
@@ -1133,7 +1164,7 @@ cl_max_original <- agglomerative_clustering(
   data = datos,
   proximity = "complete",
   distance_method = "euclidean",
-  learn = TRUE,
+  learn = FALSE,
   waiting = FALSE
 )
 
@@ -1142,10 +1173,62 @@ cl_avg_original <- agglomerative_clustering(
   data = datos,
   proximity = "average",
   distance_method = "euclidean",
-  learn = TRUE,
+  learn = FALSE,
   waiting = FALSE
 )
 @
+
+\subsection{Formación de los clusters}
+
+<<ej2_2_formacion, echo=TRUE, results=verbatim, fig=FALSE>>=
+# Función auxiliar para imprimir el proceso de fusiones
+imprimir_fusiones <- function(hc, titulo, datos) {
+  cat("\n=== Proceso de fusiones (", titulo, ") ===\n", sep = "")
+  merge_mat <- hc$merge
+  heights   <- hc$height
+  
+  idx_to_label <- function(idx) {
+    if (idx < 0) {
+      # hoja: índice negativo -> observación original
+      return(rownames(datos)[-idx])
+    } else {
+      # clúster intermedio
+      return(paste0("C", idx))
+    }
+  }
+  
+  for (i in seq_len(nrow(merge_mat))) {
+    left  <- merge_mat[i, 1]
+    right <- merge_mat[i, 2]
+    cat(
+      sprintf(
+        "Paso %2d: se fusionan %-4s y %-4s a distancia %.3f\n",
+        i,
+        idx_to_label(left),
+        idx_to_label(right),
+        heights[i]
+      )
+    )
+  }
+}
+
+# MIN (sin jitter)
+hc_min_original <- as.hclust(cl_min_original)
+imprimir_fusiones(hc_min_original, "single-link, sin jitter", datos)
+
+# MIN (con jitter)
+hc_min_jitter_hc <- as.hclust(cl_min_jitter)
+imprimir_fusiones(hc_min_jitter_hc, "single-link, con jitter", datos)
+
+# MAX
+hc_max <- as.hclust(cl_max_original)
+imprimir_fusiones(hc_max, "complete-link", datos)
+
+# AVG
+hc_avg <- as.hclust(cl_avg_original)
+imprimir_fusiones(hc_avg, "average-link", datos)
+@
+
 
 \subsection{Visualización de los dendrogramas}
 
@@ -1251,59 +1334,29 @@ cat("Cophenetic AVG :", cor_avg, "\n")
 @
 
 \subsection{Análisis e interpretación de resultados}
-Primero destacar que la razón de uso de un ruido sobre los datos iniciales se debe a que ante la ausencia de los mismos no sería posible visualizar correctamente los clusters que se van formando, y de esta forma se logra una visualización más clara sin perjudicar al resultado (ver cutree). Segundo destacar que a partir de los valores obtenidos de la correlacion cophenetica podemos concluir que la mejor técnica de clusterización sería el Group Average en este caso.
+Primero destacar que la razón de uso de un ruido sobre los datos iniciales se debe a que ante la ausencia de los mismos no sería posible visualizar correctamente los clusters que se van formando, y de esta forma se logra una visualización más clara sin perjudicar al resultado (ver cutree). Segundo destacar que a partir de los valores obtenidos de la correlacion cophenetica podemos concluir que la mejor técnica de clusterización sería el Group Average en este caso al tener el mayor valor del coeficiente cophenetico.
 
 \subsection*{Prompt de IA utilizado}
 \begin{quote}
-Actúa como un tutor experto en R, estadística y clustering jerárquico, con experiencia específica en los paquetes \texttt{LearnClust} y \texttt{UAHDataScienceUC} de R.\
+Actúa como un tutor experto en R, estadística y clustering jerárquico, con experiencia en los paquetes \texttt{LearnClust} y \texttt{UAHDataScienceUC}.
 
-Tus tareas serán:\
-Leer atentamente el código R que te pase y explicar qué hace, especialmente si usa funciones como \texttt{agglomerativeHC} de \texttt{LearnClust} y sus variantes \texttt{.details}.\
-Detectar y explicar por qué, en algunos dendrogramas, distintas fusiones aparecen a la misma altura (por ejemplo, cuando varias proximidades tienen exactamente el mismo valor y visualmente no se distinguen bien los niveles).\
-Proponer una solución usando el paquete \texttt{UAHDataScienceUC}, manteniendo la misma lógica de clusterización (distancia euclídea, tipos de enlace MIN/single, MAX/complete, AVG/average), pero:
+Tus tareas son:
 \begin{itemize}
-\item Añadiendo un pequeño \emph{jitter} (ruido aleatorio controlado) solo para el método MIN (single-link), con el objetivo de romper empates en las proximidades y hacer más visibles los distintos niveles del dendrograma.
-\item Manteniendo los datos sin \emph{jitter} para los métodos MAX (complete-link) y AVG (average-link).
-\end{itemize}
-Generar código R completo y listo para ejecutar, que incluya:
-\begin{itemize}
-\item Creación de los datos (matrices o \texttt{data.frame}) a partir de los valores que te indique.
-\item Generación de una versión \emph{jittered} de los datos únicamente para el clustering MIN.
-\item Llamadas a \texttt{agglomerative\_clustering} con los parámetros adecuados (\texttt{proximity}, \texttt{distance\_method}, \texttt{learn}, \texttt{waiting}).
-\item Conversión a \texttt{hclust} con \texttt{as.hclust} si eso ayuda a representar mejor los niveles del dendrograma.
-\item Apertura de ventanas gráficas independientes (\texttt{windows()} en Windows, u otra función equivalente si se necesita) para dibujar un dendrograma por cada tipo de enlace:
-\begin{itemize}
-\item MIN (single-link) usando los datos con \emph{jitter}.
-\item MAX (complete-link) usando los datos originales.
-\item AVG (average-link) usando los datos originales.
-\end{itemize}
-\item Inclusión de títulos claros en \texttt{main} para que se identifique visualmente cada método y si usa \emph{jitter} o no.
-\end{itemize}
-Ajustar y explicar los dendrogramas para que se distingan bien los distintos niveles de fusión entre clusters, en particular:
-\begin{itemize}
-\item Mostrar cómo el \emph{jitter} en MIN consigue separar visualmente fusiones que antes aparecían a la misma altura.
-\item Comentar que la estructura de clustering (qué puntos se agrupan con cuáles) se mantiene prácticamente igual, pero la representación gráfica gana claridad.
-\end{itemize}
-Mantener, siempre que sea posible, los mensajes explicativos paso a paso que ofrece \texttt{agglomerative\_clustering} (\texttt{learn = TRUE}), y usar \texttt{dist}, \texttt{hclust}, \texttt{as.hclust}, etc.\ solo como apoyo para la visualización cuando haga falta.
-
-Explicarme brevemente, en español y de forma clara:
-\begin{itemize}
-\item Qué hace cada bloque de código.
-\item Por qué el dendrograma original no distinguía bien los niveles (empates en las distancias/proximidades).
-\item Cómo el \emph{jitter} aplicado solo al MIN soluciona el problema sin ``destrozar'' el clustering.
-\item Cómo interpretar el dendrograma resultante: qué puntos forman cada cluster y en qué orden se fusionan.
-\end{itemize}
-
-Requisitos de estilo:
-\begin{itemize}
-\item Responde siempre en español.
-\item Sé muy explícito con el código R (sin pseudocódigo) y comenta las líneas clave.
-\item Si detectas errores de sintaxis o parámetros incoherentes, corrígelos y explica el motivo.
-\item Si es relevante, indica cómo cambiar el código para otros sistemas operativos (por ejemplo, reemplazar \texttt{windows()} por \texttt{X11()} o \texttt{quartz()}).
-\item Cuando te pase nuevos datos o matrices, genera automáticamente las tres variantes de clustering jerárquico (MIN/single con \emph{jitter}, MAX/complete sin \emph{jitter} y AVG/average sin \emph{jitter}) con sus correspondientes \emph{plots} en ventanas separadas, reutilizando la misma estructura de código y explicaciones.
+  \item Leer y explicar el código R que te proporcione, especialmente las funciones de clustering jerárquico.
+  \item Analizar por qué en algunos dendrogramas varias fusiones aparecen a la misma altura.
+  \item Proponer una solución usando \texttt{UAHDataScienceUC}, manteniendo distancia euclídea y los enlaces MIN (single), MAX (complete) y AVG (average).
+  \item Introducir un pequeño \emph{jitter} solo en el método MIN para romper empates y mejorar la visualización, manteniendo MAX y AVG sin \emph{jitter}.
+  \item Generar código R completo y ejecutable que:
+  \begin{itemize}
+    \item Genere una versión con \emph{jitter} solo para el método MIN.
+    \item Aplique los tres métodos de clustering (MIN con \emph{jitter}, MAX y AVG sin \emph{jitter}).
+    \item Represente los cuatro dendrogramas en ventanas separadas con títulos claros indicando el método y si usa \emph{jitter} o no.
+  \end{itemize}
+  \item Explicar brevemente qué hace cada bloque de código, por qué el dendrograma original no distinguía bien los niveles, cómo ayuda el \emph{jitter} en MIN y cómo interpretar los dendrogramas resultantes.
 \end{itemize}
 \end{quote}
 \newpage
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Ejercicio 2.3: Clasificación Supervisada Manual (Árboles de Decisión)}
