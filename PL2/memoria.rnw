@@ -1357,9 +1357,9 @@ Tus tareas son:
 \end{quote}
 \newpage
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Ejercicio 2.3: Clasificación Supervisada Manual (Árboles de Decisión)}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\section{Ejercicio 2.3: Clasificación Supervisada Manual (Árboles de Decisión)}
+
 
 En este ejercicio autónomo se construye un árbol de decisión de forma manual para clasificar tipos de vehículos. Se implementa la lógica del algoritmo de particionamiento recursivo (siguiendo la filosofía de algoritmos como Hunt o ID3/CART) pero programando explícitamente el cálculo detallado de la impureza y la ganancia de información para mostrar el proceso matemático subyacente.
 
