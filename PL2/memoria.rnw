@@ -1363,7 +1363,7 @@ Tus tareas son:
 
 En este ejercicio autónomo se construye un árbol de decisión de forma manual para clasificar tipos de vehículos. Se implementa la lógica del algoritmo de particionamiento recursivo (siguiendo la filosofía de algoritmos como Hunt o ID3/CART) pero programando explícitamente el cálculo detallado de la impureza y la ganancia de información para mostrar el proceso matemático subyacente.
 
-\subsubsection{1. Fundamento Teórico}
+\subsubsection{Fundamento Teórico}
 Los árboles de decisión clasifican instancias ordenándolas desde el nodo raíz hasta algún nodo hoja. Para seleccionar el atributo óptimo de división en cada nodo, utilizamos medidas de impureza. En este ejercicio, empleamos el \textbf{Índice de Gini}, que mide la probabilidad de clasificar incorrectamente un elemento aleatorio.
 
 \[ Gini(S) = 1 - \sum_{i=1}^{c} p_i^2 \]
@@ -1373,7 +1373,7 @@ La \textbf{Ganancia de Información} al dividir un nodo $S$ usando un atributo $
 \[ Ganancia(S, A) = Gini(S) - \sum_{v \in Values(A)} \frac{|S_v|}{|S|} Gini(S_v) \]
 El algoritmo selecciona en cada paso el atributo que maximiza esta ganancia.
 
-\subsubsection{2. Definición del Conjunto de Datos}
+\subsubsection{Definición del Conjunto de Datos}
 El conjunto de datos consta de 10 observaciones con las siguientes características:
 \begin{itemize}
     \item \textbf{Atributos Predictoras:} \textit{TipoCarnet} (A, B, N), \textit{Ruedas} (2, 4, 6), \textit{Pasajeros} (1, 2, 4, 5, 6).
@@ -1393,7 +1393,7 @@ datos_vehiculos <- data.frame(
 print(datos_vehiculos)
 @
 
-\subsubsection{3. Funciones Implementadas para el Cálculo Detallado}
+\subsubsection{ Funciones Implementadas para el Cálculo Detallado}
 Para ilustrar el proceso matemático, se han implementado funciones que no solo devuelven el resultado, sino que imprimen la traza del cálculo:
 
 \begin{enumerate}
@@ -1465,7 +1465,7 @@ evaluar_division_detallada <- function(datos, atributo, clase_objetivo) {
 }
 @
 
-\subsubsection{4. Ejecución del Algoritmo Paso a Paso}
+\subsubsection{ Ejecución del Algoritmo Paso a Paso}
 
 \paragraph{Paso 1: Selección del Nodo Raíz.}
 Se evalúan los tres atributos disponibles con el conjunto completo ($N=10$). El objetivo es encontrar el que proporcione la mayor ganancia.
@@ -1534,4 +1534,5 @@ For Exercise 2.3, I need to generate a "Master Script" in R that manually implem
 \end{quote}
 
 \end{document}
+
 
