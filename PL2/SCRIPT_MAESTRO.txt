@@ -581,15 +581,15 @@ plot(as.hclust(cl_min_jitter), main = "MIN (single-link) con jitter")
 
 
 # ==============================================================================
-# EJERCICIO 2.3: CLASIFICACIÓN SUPERVISADA MANUAL (Árboles de Decisión)
-# Implementación del algoritmo de partición recursiva usando Índice de Gini.
+# EJERCICIO 2.3: CLASIFICACIÓN SUPERVISADA (DETALLADO)
+# Algoritmo de Hunt / Árboles de Decisión con desglose matemático
 # ==============================================================================
+
 cat("\n\n********************************************************************\n")
-cat(" EJERCICIO 2.3: ÁRBOL DE DECISIÓN MANUAL (VEHÍCULOS)\n")
+cat(" EJERCICIO 2.3: ÁRBOL DE DECISIÓN - DETALLE MATEMÁTICO\n")
 cat("********************************************************************\n")
 
-# --- 1. Definición del Dataset ---
-# Datos de entrenamiento (10 observaciones)
+# --- 1. Definición del Dataset (10 sucesos) ---
 datos_vehiculos <- data.frame(
   Carnet = c("B", "A", "N", "B", "B", "B", "N", "B", "B", "N"),
   Ruedas = c(4, 2, 2, 6, 4, 4, 2, 2, 6, 2),
@@ -603,102 +603,136 @@ print(">> Conjunto de datos inicial:")
 print(datos_vehiculos)
 
 # ------------------------------------------------------------------------------
-# FUNCIONES AUXILIARES (Lógica del Algoritmo)
+# FUNCIONES AUXILIARES (Con visualización de fórmulas)
 # ------------------------------------------------------------------------------
 
-# Función: Calcular Impureza Gini de un conjunto de etiquetas
-# Gini(S) = 1 - sum(p_i^2)
-calcular_gini <- function(clases) {
+# Función: Calcular Gini mostrando la operación matemática
+calcular_gini_visual <- function(clases, nombre_nodo="Nodo") {
   n <- length(clases)
   if (n == 0) return(0)
   
   conteos <- table(clases)
-  proporciones <- conteos / n
+  # Ejemplo visual: "Coche=3, Moto=2"
+  distribucion_txt <- paste(names(conteos), as.numeric(conteos), sep="=", collapse=", ")
   
-  gini <- 1 - sum(proporciones^2)
+  # Cálculo numérico
+  proporciones <- as.numeric(conteos) / n
+  suma_cuadrados <- sum(proporciones^2)
+  gini <- 1 - suma_cuadrados
+  
+  # Construcción del string de la fórmula para mostrar en consola
+  # Ejemplo: "(3/10)^2 + (2/10)^2"
+  terminos_formula <- sprintf("(%d/%d)^2", as.numeric(conteos), n)
+  formula_txt <- paste(terminos_formula, collapse = " + ")
+  
+  cat(sprintf("      [%s] Datos: {%s}\n", nombre_nodo, distribucion_txt))
+  cat(sprintf("      -> Cálculo Gini: 1 - [%s]\n", formula_txt))
+  cat(sprintf("      -> Resultado Gini: 1 - %.4f = %.4f\n", suma_cuadrados, gini))
+  
   return(gini)
 }
 
-# Función: Evaluar Ganancia de Información de un atributo
-# Ganancia = Gini(Padre) - Gini_Ponderado(Hijos)
-evaluar_division <- function(datos, atributo, clase_objetivo) {
+# Función: Evaluar División mostrando Ganancia completa
+evaluar_division_detallada <- function(datos, atributo, clase_objetivo) {
   valores <- unique(datos[[atributo]])
   n_total <- nrow(datos)
   
-  # 1. Impureza del nodo actual (Padre)
-  gini_inicial <- calcular_gini(datos[[clase_objetivo]])
-  gini_ponderado <- 0
+  cat(sprintf("\n--- ANALIZANDO ATRIBUTO: [%s] ---\n", atributo))
   
-  cat(sprintf("\n   [Analizando atributo: %s]\n", atributo))
+  # 1. Calcular Gini del PADRE
+  cat("   1. IMPUREZA DEL PADRE:\n")
+  gini_padre <- calcular_gini_visual(datos[[clase_objetivo]], "PADRE")
   
-  # 2. Calcular impureza ponderada de los hijos
+  # 2. Calcular Gini de los HIJOS y el promedio ponderado
+  cat(sprintf("\n   2. IMPUREZA DE LOS HIJOS (Ramas de '%s'):\n", atributo))
+  gini_ponderado_total <- 0
+  formula_ponderada_txt <- c() # Para guardar el texto del cálculo final
+  
   for (val in valores) {
+    # Filtramos los datos para esta rama
     subconjunto <- datos[datos[[atributo]] == val, ]
     n_sub <- nrow(subconjunto)
-    gini_sub <- calcular_gini(subconjunto[[clase_objetivo]])
+    peso <- n_sub / n_total
     
-    gini_ponderado <- gini_ponderado + (n_sub / n_total) * gini_sub
+    # Calculamos Gini del hijo
+    nombre_hijo <- paste0(atributo, "=", val)
+    gini_hijo <- calcular_gini_visual(subconjunto[[clase_objetivo]], nombre_hijo)
     
-    clases_rama <- paste(unique(subconjunto[[clase_objetivo]]), collapse=",")
-    cat(sprintf("     -> Rama '%s' (n=%d): Clases={%s} | Gini=%.3f\n", 
-                val, n_sub, clases_rama, gini_sub))
+    # Acumulamos para el ponderado
+    gini_ponderado_total <- gini_ponderado_total + (peso * gini_hijo)
+    
+    # Guardamos texto para imprimir luego: "(n_hijo/n_total * Gini_hijo)"
+    formula_ponderada_txt <- c(formula_ponderada_txt, 
+                               sprintf("(%d/%d * %.4f)", n_sub, n_total, gini_hijo))
+    cat("\n")
   }
   
-  # 3. Ganancia
-  ganancia <- gini_inicial - gini_ponderado
-  cat(sprintf("   => Ganancia Total: %.3f (Gini Ponderado: %.3f)\n", 
-              ganancia, gini_ponderado))
+  # 3. Calcular Ganancia de Información
+  ganancia <- gini_padre - gini_ponderado_total
+  
+  cat("   3. CÁLCULO FINAL DE GANANCIA:\n")
+  cat(sprintf("      Gini Ponderado = Suma %s\n", paste(formula_ponderada_txt, collapse=" + ")))
+  cat(sprintf("      Gini Ponderado = %.4f\n", gini_ponderado_total))
+  cat(sprintf("      GANANCIA = Gini(Padre) - Gini(Ponderado)\n"))
+  cat(sprintf("      GANANCIA = %.4f - %.4f =  >> %.4f <<\n", gini_padre, gini_ponderado_total, ganancia))
   
   return(ganancia)
 }
 
 # ------------------------------------------------------------------------------
-# CONSTRUCCIÓN DEL ÁRBOL (Ejecución Paso a Paso)
+# EJECUCIÓN DEL ALGORITMO
 # ------------------------------------------------------------------------------
 
 # --- PASO 1: NODO RAÍZ ---
-cat("\n\n=== PASO 1: SELECCIÓN DEL NODO RAÍZ ===\n")
-# Evaluamos todos los atributos candidatos
-g_carnet <- evaluar_division(datos_vehiculos, "Carnet", "Vehiculo")
-g_ruedas <- evaluar_division(datos_vehiculos, "Ruedas", "Vehiculo")
-g_pasajeros <- evaluar_division(datos_vehiculos, "Pasajeros", "Vehiculo")
+cat("\n\n==========================================================\n")
+cat(" PASO 1: SELECCIÓN DEL PRIMER NODO (RAÍZ)\n")
+cat("==========================================================\n")
 
-cat("\n>> DECISIÓN PASO 1: El atributo 'Ruedas' tiene la mayor ganancia (0.500).\n")
-cat("   Estructura actual:\n")
-cat("   - Ruedas = 4: Coche (Gini 0.0 -> Hoja)\n")
-cat("   - Ruedas = 6: Camion (Gini 0.0 -> Hoja)\n")
-cat("   - Ruedas = 2: Mezcla {Moto, Bicicleta} (Gini > 0 -> DIVIDIR)\n")
+g_carnet <- evaluar_division_detallada(datos_vehiculos, "Carnet", "Vehiculo")
+g_ruedas <- evaluar_division_detallada(datos_vehiculos, "Ruedas", "Vehiculo")
+g_pasajeros <- evaluar_division_detallada(datos_vehiculos, "Pasajeros", "Vehiculo")
 
+cat("
+>>> CONCLUSIÓN PASO 1:
+La mayor ganancia es RUEDAS (0.5000).
+Estado del árbol:
+   Ruedas = 4 --> Gini 0.0000 (PURO: Todo son Coches) -> HOJA
+   Ruedas = 6 --> Gini 0.0000 (PURO: Todo son Camiones) -> HOJA
+   Ruedas = 2 --> Gini 0.4800 (MEZCLA: Motos y Bicicletas) -> NODO INTERMEDIO
+")
 
-# --- PASO 2: SUBDIVISIÓN (Rama Ruedas = 2) ---
-cat("\n\n=== PASO 2: ANÁLISIS RAMA 'RUEDAS = 2' ===\n")
+# --- PASO 2: SUBDIVISIÓN ---
+cat("\n\n==========================================================\n")
+cat(" PASO 2: SUBDIVIDIR LA RAMA 'RUEDAS = 2'\n")
+cat("==========================================================\n")
 
-# Filtramos el dataset
+# Filtramos los datos para quedarnos solo con los de 2 ruedas
 datos_ruedas2 <- datos_vehiculos[datos_vehiculos$Ruedas == 2, ]
-print("Subconjunto de datos (Ruedas=2):")
+print("Datos restantes en este nodo:")
 print(datos_ruedas2)
 
-# Evaluamos atributos restantes
-g2_carnet <- evaluar_division(datos_ruedas2, "Carnet", "Vehiculo")
-g2_pasajeros <- evaluar_division(datos_ruedas2, "Pasajeros", "Vehiculo")
+# Evaluamos los atributos que quedan (Carnet y Pasajeros)
+g2_carnet <- evaluar_division_detallada(datos_ruedas2, "Carnet", "Vehiculo")
+g2_pasajeros <- evaluar_division_detallada(datos_ruedas2, "Pasajeros", "Vehiculo")
 
-cat("\n>> DECISIÓN PASO 2: El atributo 'Carnet' tiene la mayor ganancia.\n")
-cat("   Separa perfectamente las clases restantes:\n")
-cat("   - Carnet A -> Moto\n")
-cat("   - Carnet B -> Moto\n")
-cat("   - Carnet N -> Bicicleta\n")
+cat("\n>>> CONCLUSIÓN PASO 2:\n")
+cat("La mayor ganancia es CARNET (0.4800).\n")
+cat("Como el Gini de los hijos de Carnet es 0 (Gini Ponderado = 0), la clasificación es perfecta.\n")
+
 
 # ------------------------------------------------------------------------------
 # RESUMEN FINAL
 # ------------------------------------------------------------------------------
-cat("\n==========================================================\n")
-cat(" ÁRBOL DE DECISIÓN FINAL (GENERADO MANUALMENTE)\n")
-cat("==========================================================\n")
-cat("1. ¿Ruedas?\n")
-cat("   |-- 4: Coche\n")
-cat("   |-- 6: Camion\n")
-cat("   |-- 2: ¿Tipo de Carnet?\n")
-cat("       |-- A: Moto\n")
-cat("       |-- B: Moto\n")
-cat("       |-- N: Bicicleta\n")
-cat("==========================================================\n")
+cat("
+==========================================================
+ÁRBOL DE DECISIÓN FINAL (GENERADO MANUALMENTE)
+==========================================================
+1. ¿Ruedas?
+   |Si tiene 4: Coche
+   |Si tiene 6: Camion
+   |Si tiene 2: ¿Tipo de Carnet?
+       |Si es carné tipo A: Moto
+       |Si es carné tipo B: Moto
+       |Si es carné tipo N: Bicicleta
+==========================================================
+")
